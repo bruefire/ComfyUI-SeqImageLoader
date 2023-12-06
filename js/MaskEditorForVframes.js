@@ -212,6 +212,13 @@ class MaskEditorDialog extends ComfyDialog {
 				self.maskCtx.clearRect(0, 0, self.maskCanvas.width, self.maskCanvas.height);
 				self.backupCtx.clearRect(0, 0, self.backupCanvas.width, self.backupCanvas.height);
 			});
+		var ReuseButton = this.createLeftButton("Reuse Prev",
+			() => {
+				if (this.#selectedIndex > 0) {
+					const prevMask = this.backMaskCanvases[this.#selectedIndex - 1];
+					this.maskCanvas.getContext('2d').drawImage(prevMask, 0, 0, prevMask.width, prevMask.height);
+				}
+			});
 		var prevButton = this.createLeftButton("Prev",
 			() => {
 				if (this.#selectedIndex > 0) {
@@ -254,6 +261,7 @@ class MaskEditorDialog extends ComfyDialog {
 		this.element.appendChild(bottom_panel);
 
 		bottom_panel.appendChild(clearButton);
+		bottom_panel.appendChild(ReuseButton);
 		bottom_panel.appendChild(this.saveButton);
 		bottom_panel.appendChild(cancelButton);
 		bottom_panel.appendChild(brush_size_slider);
