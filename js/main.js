@@ -9,20 +9,27 @@ app.registerExtension({
     name: "ComfyUI.animatediff.inpaint",
     
     async init(app)
-    {
-        app.extVideoFrameIdCount = 0;
-        
+    {   
 		ComfyApp.ext_open_maskeditor_for_vframes =
-        function (pathData) {
+        function (idWidget) {
+            
             const dlg = MaskEditorForVframes.getInstance();
-            dlg.path_data = pathData;
+            dlg.path_data = idWidget.value;
+            dlg.updatePathDataHnadler = (maskDirId, sketchDirId) => {
+                let imageData = idWidget.value.split(":");
+                let dirIdStr = imageData.pop();
+                let dirIds = dirIdStr.split("/");
+
+                dirIds = [dirIds[0], maskDirId, sketchDirId];
+                dirIdStr = dirIds.join("/");
+                imageData.push(dirIdStr);
+
+                idWidget.value = imageData.join(":");
+            };
             if(!dlg.isOpened()) {
                 dlg.show();
             }
         };
-
-        // const context_predicate = () => ComfyApp.clipspace && ComfyApp.clipspace.imgs && ComfyApp.clipspace.imgs.length > 0
-        // ClipspaceDialog.registerButton("MaskEditor", context_predicate, ComfyApp.open_maskeditor);
     },
     async setup() 
     {   
@@ -46,7 +53,7 @@ app.registerExtension({
                             // ComfyApp.copyToClipspace(this);
                             // ComfyApp.clipspace_return_node = this;
                             
-                            ComfyApp.ext_open_maskeditor_for_vframes(this.widgets_values[0]);
+                            ComfyApp.ext_open_maskeditor_for_vframes(this.widgets[0]);
                         }
                     });
             }
@@ -85,15 +92,17 @@ app.registerExtension({
         
                 // Add our own callback to the combo widget to render an image when it changes
                 idWidget.callback = function () {
-                    let imageData = idWidget.value.split(":", 3);
-                    showImage(imageData[0] + "/" + imageData[1]);
+                    let imageData = idWidget.value.split(":");
+                    let dirIds = imageData[imageData.length - 1].split("/");
+                    showImage(dirIds[0] + "/" + imageData[0]);
                 };
                 
                 // On load if we have a value then render the image
                 requestAnimationFrame(() => {
                     if (idWidget.value) {
-                        let imageData = idWidget.value.split(":", 3);
-                        showImage(imageData[0] + "/" + imageData[1]);
+                        let imageData = idWidget.value.split(":");
+                        let dirIds = imageData[imageData.length - 1].split("/");
+                        showImage(dirIds[0] + "/" + imageData[0]);
                     }
                 });
                 
@@ -135,14 +144,15 @@ app.registerExtension({
                     webkitdirectory: true,
                     onchange: async () => {
                         if (fileInput.files.length) {
-                            const vframeId = app.extVideoFrameIdCount++;
-                            let vframeData = String(vframeId);
+                            const vframeId = Date.now();
+                            let vframeData = "";
         
                             for (let i = 0; i < fileInput.files.length; i++) {
-                                vframeData += ":" + fileInput.files[i].name
+                                vframeData += fileInput.files[i].name + ":";
                                 await uploadFile(
                                     fileInput.files[i], i === 0, vframeId);
                             }
+                            vframeData += String(vframeId);
                             idWidget.value = vframeData;
                         }
                     },

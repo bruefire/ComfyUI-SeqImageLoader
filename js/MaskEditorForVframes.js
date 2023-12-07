@@ -17,39 +17,6 @@ function dataURLToBlob(dataURL) {
 	return new Blob([arrayBuffer], { type: contentType });
 }
 
-function loadedImageToBlob(image) {
-	const canvas = document.createElement('canvas');
-
-	canvas.width = image.width;
-	canvas.height = image.height;
-
-	const ctx = canvas.getContext('2d');
-
-	ctx.drawImage(image, 0, 0);
-
-	const dataURL = canvas.toDataURL('image/png', 1);
-	const blob = dataURLToBlob(dataURL);
-
-	return blob;
-}
-
-async function uploadMask(filepath, formData) {
-	await api.fetchApi('/upload/mask', {
-		method: 'POST',
-		body: formData
-	}).then(response => {}).catch(error => {
-		console.error('Error:', error);
-	});
-
-	ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']] = new Image();
-	ComfyApp.clipspace.imgs[ComfyApp.clipspace['selectedIndex']].src = api.apiURL("/view?" + new URLSearchParams(filepath).toString() + app.getPreviewFormatParam());
-
-	if(ComfyApp.clipspace.images)
-		ComfyApp.clipspace.images[ComfyApp.clipspace['selectedIndex']] = filepath;
-
-	ClipspaceDialog.invalidatePreview();
-}
-
 function prepareRGB(image, backupCanvas, backupCtx) {
 	// paste mask data into alpha channel
 	backupCtx.drawImage(image, 0, 0, backupCanvas.width, backupCanvas.height);
@@ -87,7 +54,8 @@ class MaskEditorDialog extends ComfyDialog {
 	set path_data(value) {
 		const parts = value?.split(":");
 		if (parts) {
-			const id = parts.shift();
+			const dirIds = parts.pop();
+			const id = dirIds.split("/")[0];
 			this.#vframeId = id;
 			this.#paths = parts.map(file_name => {
 				return {
@@ -220,7 +188,7 @@ class MaskEditorDialog extends ComfyDialog {
 		document.body.appendChild(brush);
 		
 
-		var colorPicker = this.createLeftColorPicker("sketch",
+		var colorPicker = this.colorPicker = this.createLeftColorPicker("sketch",
 			() => {
 			});
 		var modeButton = this.createLeftButton("sketch",
@@ -228,6 +196,7 @@ class MaskEditorDialog extends ComfyDialog {
 				if (!this.is_sketch) {
 					ev.target.innerText = "inpaint";
 					colorPicker.style.display = "inline";
+					maskCanvas.style.opacity = "1.0";
 
 					this.storeActiveToBack();
 					const bSketchCanvas = this.backSketchCanvases[this.#selectedIndex];
@@ -236,6 +205,7 @@ class MaskEditorDialog extends ComfyDialog {
 				} else {
 					ev.target.innerText = "sketch";
 					colorPicker.style.display = "none";
+					maskCanvas.style.opacity = "0.66";
 					
 					this.storeActiveToBack();
 					const bMaskCanvas = this.backMaskCanvases[this.#selectedIndex];
@@ -416,8 +386,15 @@ class MaskEditorDialog extends ComfyDialog {
 			maskCanvas.height = drawHeight;
 			maskCanvas.style.top = imgCanvas.offsetTop + "px";
 			maskCanvas.style.left = imgCanvas.offsetLeft + "px";
-			// backupCtx.drawImage(maskCanvas, 0, 0, maskCanvas.width, maskCanvas.height, 0, 0, backupCanvas.width, backupCanvas.height);
-			// maskCtx.drawImage(backupCanvas, 0, 0, backupCanvas.width, backupCanvas.height, 0, 0, maskCanvas.width, maskCanvas.height);
+
+			const resizeBackCanvas = backCanvas => {
+				if (backCanvas.width != maskCanvas.width || backCanvas.height != maskCanvas.height) {
+					backCanvas.width = maskCanvas.width;
+					backCanvas.height = maskCanvas.height;
+				}
+			};
+			this.backMaskCanvases.forEach(resizeBackCanvas);
+			this.backSketchCanvases.forEach(resizeBackCanvas);
 			maskCtx.drawImage(this.getBackCanvasForCurrentMode(this.#selectedIndex), 0, 0, maskCanvas.width, maskCanvas.height);
 		});
 
@@ -551,7 +528,7 @@ class MaskEditorDialog extends ComfyDialog {
 			if(diff > 20 && !this.drawing_mode)
 				requestAnimationFrame(() => {
 					self.maskCtx.beginPath();
-					self.maskCtx.fillStyle = "rgb(255, 255, 255)";
+					self.maskCtx.fillStyle = this.getActiveBrushColor();
 					self.maskCtx.globalCompositeOperation = "source-over";
 					self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
 					self.maskCtx.fill();
@@ -561,7 +538,7 @@ class MaskEditorDialog extends ComfyDialog {
 			else
 				requestAnimationFrame(() => {
 					self.maskCtx.beginPath();
-					self.maskCtx.fillStyle = "rgb(255, 255, 255)";
+					self.maskCtx.fillStyle = this.getActiveBrushColor();
 					self.maskCtx.globalCompositeOperation = "source-over";
 
 					var dx = x - self.lastx;
@@ -652,7 +629,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 			self.maskCtx.beginPath();
 			if (event.button == 0) {
-				self.maskCtx.fillStyle = "rgb(255, 255, 255)";
+				self.maskCtx.fillStyle = this.getActiveBrushColor();
 				self.maskCtx.globalCompositeOperation = "source-over";
 			} else {
 				self.maskCtx.globalCompositeOperation = "destination-out";
@@ -666,18 +643,20 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	getBackCanvasForCurrentMode(index) {
-		if (this.is_sketch) {
-			return this.backSketchCanvases[index];
-		} else {
-			return this.backMaskCanvases[index];
-		}
+		return this.is_sketch 
+			? this.backSketchCanvases[index]
+			: this.backMaskCanvases[index];
 	}
 
 	storeActiveToBack() {
 		const backCanvas = this.getBackCanvasForCurrentMode(this.#selectedIndex);
-		backCanvas.width = this.maskCanvas.width;
-		backCanvas.height = this.maskCanvas.height;
 		backCanvas.getContext('2d').drawImage(this.maskCanvas, 0, 0, backCanvas.width, backCanvas.height);
+	}
+
+	getActiveBrushColor() {
+		return this.is_sketch
+			? this.colorPicker.value
+			: "rgb(255, 255, 255)";
 	}
 
 	async save() {
@@ -688,8 +667,7 @@ class MaskEditorDialog extends ComfyDialog {
 			0, 0, this.maskCanvas.width, this.maskCanvas.height,
 			0, 0, this.backupCanvas.width, this.backupCanvas.height);
 
-
-		this.backMaskCanvases.forEach(async (maskCanvas, i) => {
+		const uploadImages = async (maskCanvas, i, idSitr) => {
 			const body = new FormData();
 			const dataURL = maskCanvas.toDataURL();
 			const blob = dataURLToBlob(dataURL);
@@ -697,18 +675,35 @@ class MaskEditorDialog extends ComfyDialog {
 			const filename = this.#paths[i].filename.substr(0, extPos) + ".png";
 
 			body.append("image", blob, filename);
-			body.append("subfolder", "extVideoFrame-mask" + String(this.#vframeId));
+			body.append("subfolder", "extVideoFrame" + idSitr);
 			const resp = await api.fetchApi("/upload/image", {
 				method: "POST",
 				body,
 			});
-		});
-
+		};
 
 		this.saveButton.innerText = "Saving...";
+
+		const maskDirId = Date.now();
+		const sketchDirId = maskDirId + 1;
+		for (let i = 0; i < this.backMaskCanvases.length; i++)
+			await uploadImages(this.backMaskCanvases[i], i, String(maskDirId));
+		for (let i = 0; i < this.backSketchCanvases.length; i++)
+			await uploadImages(this.backSketchCanvases[i], i, String(sketchDirId));
+
+		this.#updatePathDataHnadler(maskDirId, sketchDirId);
 		this.saveButton.disabled = true;
 		
 		this.close();
+	}
+
+
+	#_updatePathDataHnadler = null;
+	get #updatePathDataHnadler() {
+		return this.#_updatePathDataHnadler ?? ((maskDirId, sketchDirId) => {});
+	}
+	set updatePathDataHnadler(value) {
+		this.#_updatePathDataHnadler = value;
 	}
 }
 
