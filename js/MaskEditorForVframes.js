@@ -145,7 +145,7 @@ class MaskEditorDialog extends ComfyDialog {
 		return divElement;
 	}
 
-	setlayout(imgCanvas, maskCanvas) {
+	setlayout(imgCanvas, maskCanvas, sketchCanvas) {
 		const self = this;
 
 		// If it is specified as relative, using it only as a hidden placeholder for padding is recommended
@@ -181,6 +181,7 @@ class MaskEditorDialog extends ComfyDialog {
 		brush.style.pointerEvents = "none";
 		this.brush = brush;
 		this.element.appendChild(imgCanvas);
+		this.element.appendChild(sketchCanvas);
 		this.element.appendChild(maskCanvas);
 		this.element.appendChild(placeholder); // must below z-index than bottom_panel to avoid covering button
 		this.element.appendChild(top_panel);
@@ -193,10 +194,12 @@ class MaskEditorDialog extends ComfyDialog {
 			});
 		var modeButton = this.createLeftButton("sketch",
 			(ev) => {
+				this.maskCtx.globalCompositeOperation = "source-over";
 				if (!this.is_sketch) {
 					ev.target.innerText = "inpaint";
 					colorPicker.style.display = "inline";
 					maskCanvas.style.opacity = "1.0";
+					sketchCanvas.style.display = "none";
 
 					this.storeActiveToBack();
 					const bSketchCanvas = this.backSketchCanvases[this.#selectedIndex];
@@ -206,8 +209,10 @@ class MaskEditorDialog extends ComfyDialog {
 					ev.target.innerText = "sketch";
 					colorPicker.style.display = "none";
 					maskCanvas.style.opacity = "0.66";
+					sketchCanvas.style.display = "inline";
 					
 					this.storeActiveToBack();
+					this.prepareSketchLayer();
 					const bMaskCanvas = this.backMaskCanvases[this.#selectedIndex];
 					this.maskCtx.clearRect(0, 0, this.maskCanvas.width, this.maskCanvas.height);
 					this.maskCanvas.getContext('2d').drawImage(bMaskCanvas, 0, 0, bMaskCanvas.width, bMaskCanvas.height);
@@ -222,7 +227,6 @@ class MaskEditorDialog extends ComfyDialog {
 		var clearButton = this.createLeftButton("Clear",
 			() => {
 				self.maskCtx.clearRect(0, 0, self.maskCanvas.width, self.maskCanvas.height);
-				//self.backupCtx.clearRect(0, 0, self.backupCanvas.width, self.backupCanvas.height);
 			});
 		var ReuseButton = this.createLeftButton("Reuse Prev",
 			() => {
@@ -279,9 +283,14 @@ class MaskEditorDialog extends ComfyDialog {
 		imgCanvas.style.position = "relative";
 		imgCanvas.style.top = "200";
 		imgCanvas.style.left = "0";
+		imgCanvas.style.zIndex = "-2";
+
+		sketchCanvas.style.position = "absolute";
+		sketchCanvas.style.zIndex = "-1";
 
 		maskCanvas.style.position = "absolute";
 		maskCanvas.style.opacity = "0.66";
+		maskCanvas.style.zIndex = "0";
 	}
 
 	show() {
@@ -289,19 +298,22 @@ class MaskEditorDialog extends ComfyDialog {
 			// layout
 			const imgCanvas = document.createElement('canvas');
 			const maskCanvas = document.createElement('canvas');
+			const sketchCanvas = document.createElement('canvas');
 			const backupCanvas = document.createElement('canvas');
 			const backMaskCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 			const backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 
 			imgCanvas.id = "imageCanvas";
 			maskCanvas.id = "maskCanvas";
+			sketchCanvas.id = "sketchCanvas";
 			backupCanvas.id = "backupCanvas";
 
-			this.setlayout(imgCanvas, maskCanvas);
+			this.setlayout(imgCanvas, maskCanvas, sketchCanvas);
 
 			// prepare content
 			this.imgCanvas = imgCanvas;
 			this.maskCanvas = maskCanvas;
+			this.sketchCanvas = sketchCanvas;
 			this.backupCanvas = backupCanvas;
 			this.backMaskCanvases = backMaskCanvases;
 			this.backSketchCanvases = backSketchCanvases;
@@ -354,6 +366,8 @@ class MaskEditorDialog extends ComfyDialog {
 		const backupCtx = backupCanvas.getContext('2d');
 		const maskCtx = this.maskCtx;
 		const maskCanvas = this.maskCanvas;
+		const sketchCanvas = this.sketchCanvas;
+		const sketchCtx = sketchCanvas.getContext('2d');
 
 		backupCtx.clearRect(0,0,this.backupCanvas.width,this.backupCanvas.height);
 		imgCtx.clearRect(0,0,this.imgCanvas.width,this.imgCanvas.height);
@@ -382,10 +396,12 @@ class MaskEditorDialog extends ComfyDialog {
 			imgCtx.drawImage(orig_image, 0, 0, drawWidth, drawHeight);
 
 			// update mask
-			maskCanvas.width = drawWidth;
-			maskCanvas.height = drawHeight;
-			maskCanvas.style.top = imgCanvas.offsetTop + "px";
-			maskCanvas.style.left = imgCanvas.offsetLeft + "px";
+			[maskCanvas, sketchCanvas].forEach(canvas => {
+				canvas.width = drawWidth;
+				canvas.height = drawHeight;
+				canvas.style.top = imgCanvas.offsetTop + "px";
+				canvas.style.left = imgCanvas.offsetLeft + "px";
+			});
 
 			const resizeBackCanvas = backCanvas => {
 				if (backCanvas.width != maskCanvas.width || backCanvas.height != maskCanvas.height) {
@@ -395,6 +411,9 @@ class MaskEditorDialog extends ComfyDialog {
 			};
 			this.backMaskCanvases.forEach(resizeBackCanvas);
 			this.backSketchCanvases.forEach(resizeBackCanvas);
+			resizeBackCanvas(this.sketchCanvas);
+
+			this.prepareSketchLayer();
 			maskCtx.drawImage(this.getBackCanvasForCurrentMode(this.#selectedIndex), 0, 0, maskCanvas.width, maskCanvas.height);
 		});
 
@@ -658,6 +677,12 @@ class MaskEditorDialog extends ComfyDialog {
 		return this.is_sketch
 			? this.colorPicker.value
 			: "rgb(255, 255, 255)";
+	}
+
+	prepareSketchLayer() {
+		this.sketchCanvas.getContext('2d').clearRect(0, 0, this.sketchCanvas.width, this.sketchCanvas.height);
+		this.sketchCanvas.getContext('2d').drawImage(
+			this.backSketchCanvases[this.#selectedIndex], 0, 0, this.sketchCanvas.width, this.sketchCanvas.height);
 	}
 
 	async save() {
