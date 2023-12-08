@@ -222,7 +222,7 @@ class MaskEditorDialog extends ComfyDialog {
 		var clearButton = this.createLeftButton("Clear",
 			() => {
 				self.maskCtx.clearRect(0, 0, self.maskCanvas.width, self.maskCanvas.height);
-				self.backupCtx.clearRect(0, 0, self.backupCanvas.width, self.backupCanvas.height);
+				//self.backupCtx.clearRect(0, 0, self.backupCanvas.width, self.backupCanvas.height);
 			});
 		var ReuseButton = this.createLeftButton("Reuse Prev",
 			() => {
@@ -650,6 +650,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 	storeActiveToBack() {
 		const backCanvas = this.getBackCanvasForCurrentMode(this.#selectedIndex);
+		backCanvas.getContext('2d').clearRect(0, 0, backCanvas.width, backCanvas.height);
 		backCanvas.getContext('2d').drawImage(this.maskCanvas, 0, 0, backCanvas.width, backCanvas.height);
 	}
 
