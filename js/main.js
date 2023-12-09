@@ -92,9 +92,9 @@ app.registerExtension({
         
                 // Add our own callback to the combo widget to render an image when it changes
                 idWidget.callback = function () {
-                    let imageData = idWidget.value.split(":");
-                    let dirIds = imageData[imageData.length - 1].split("/");
-                    showImage(dirIds[0] + "/" + imageData[0]);
+                    // let imageData = idWidget.value.split(":");
+                    // let dirIds = imageData[imageData.length - 1].split("/");
+                    // showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0]);
                 };
                 
                 // On load if we have a value then render the image
@@ -102,7 +102,7 @@ app.registerExtension({
                     if (idWidget.value) {
                         let imageData = idWidget.value.split(":");
                         let dirIds = imageData[imageData.length - 1].split("/");
-                        showImage(dirIds[0] + "/" + imageData[0]);
+                        showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0]);
                     }
                 });
                 
