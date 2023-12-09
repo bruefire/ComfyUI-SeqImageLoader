@@ -254,6 +254,7 @@ class MaskEditorDialog extends ComfyDialog {
 		var cancelButton = this.createRightButton("Cancel", () => {
 			document.removeEventListener("mouseup", MaskEditorDialog.handleMouseUp);
 			document.removeEventListener("keydown", MaskEditorDialog.handleKeyDown);
+			
 			self.close();
 		});
 
@@ -341,6 +342,11 @@ class MaskEditorDialog extends ComfyDialog {
 
 			const config = { attributes: true };
 			observer.observe(this.element, config);
+
+		}
+		else if(this.#paths.length != this.backMaskCanvases.length) {
+			this.backMaskCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
+			this.backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 		}
 
 		this.setImages(this.imgCanvas, this.backupCanvas);
@@ -375,7 +381,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 		// image load
 		const orig_image = new Image();
-		window.addEventListener("resize", () => {
+		this.resizingEventHandler = () => {
 			// repositioning
 			imgCanvas.width = window.innerWidth - 250;
 			imgCanvas.height = window.innerHeight - 200;
@@ -415,7 +421,9 @@ class MaskEditorDialog extends ComfyDialog {
 
 			this.prepareSketchLayer();
 			maskCtx.drawImage(this.getBackCanvasForCurrentMode(this.#selectedIndex), 0, 0, maskCanvas.width, maskCanvas.height);
-		});
+		};
+
+		window.addEventListener("resize", this.resizingEventHandler);
 
 		const touched_image = new Image();
 
@@ -721,6 +729,11 @@ class MaskEditorDialog extends ComfyDialog {
 		this.saveButton.disabled = true;
 		
 		this.close();
+	}
+
+	close() {
+		window.removeEventListener("resize", this.resizingEventHandler);
+		super.close();
 	}
 
 
