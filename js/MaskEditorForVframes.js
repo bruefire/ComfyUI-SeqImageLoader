@@ -114,7 +114,7 @@ class MaskEditorDialog extends ComfyDialog {
 	createLeftColorPicker(self, callback) {
 		var input = document.createElement('input');
 		input.setAttribute('type', 'color');
-		input.setAttribute('value', 'white');
+		input.setAttribute('value', '#000');
 		input.addEventListener("change", callback);
 		return input;
 	}

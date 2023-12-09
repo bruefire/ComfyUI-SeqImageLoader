@@ -60,7 +60,53 @@ app.registerExtension({
         }
 
         // head image drawing
-        // ...
+		nodeType.prototype.onDrawBackground = function (ctx) {
+            
+            // Draw individual
+            if (this.extVframes) {
+
+                function getImageTop(node) {
+                    let shiftY;
+                    if (node.imageOffset != null) {
+                        shiftY = node.imageOffset;
+                    } else {
+                        if (node.widgets?.length) {
+                            const w = node.widgets[node.widgets.length - 1];
+                            shiftY = w.last_y;
+                            if (w.computeSize) {
+                                shiftY += w.computeSize()[1] + 4;
+                            }
+                            else if(w.computedHeight) {
+                                shiftY += w.computedHeight;
+                            }
+                            else {
+                                shiftY += LiteGraph.NODE_WIDGET_HEIGHT + 4;
+                            }
+                        } else {
+                            shiftY = node.computeSize()[1];
+                        }
+                    }
+                    return shiftY;
+                }
+    
+                const shiftY = getImageTop(this);
+                let dw = this.size[0];
+                let dh = this.size[1] - shiftY;
+                let w = this.extVframes[0].naturalWidth;
+                let h = this.extVframes[0].naturalHeight;
+    
+                const scaleX = dw / w;
+                const scaleY = dh / h;
+                const scale = Math.min(scaleX, scaleY, 1);
+    
+                w *= scale;
+                h *= scale;
+    
+                let x = (dw - w) / 2;
+                let y = (dh - h) / 2 + shiftY;
+                ctx.drawImage(this.extVframes[0], x, y, w, h);
+            }
+        }
         
         // widget setting
         // Adds an upload button to the nodes
