@@ -54,6 +54,8 @@ class MaskEditorDialog extends ComfyDialog {
 	set path_data(value) {
 		const parts = value?.split(":");
 		if (parts) {
+			const oldId = this.#vframeId;
+
 			const dirIds = parts.pop();
 			const id = dirIds.split("/")[0];
 			this.#vframeId = id;
@@ -64,6 +66,11 @@ class MaskEditorDialog extends ComfyDialog {
 					type: "input"
 				}
 			});
+			
+			if (this.#vframeId != oldId) {
+				this.backupMaskCanvases = null;
+				this.backupSketchCanvases = null;
+			}
 		}
 	}
 	#paths = null;
@@ -347,6 +354,17 @@ class MaskEditorDialog extends ComfyDialog {
 		else if(this.#paths.length != this.backMaskCanvases.length) {
 			this.backMaskCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 			this.backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
+		}
+
+		if (this.backupMaskCanvases) {
+			this.backMaskCanvases = this.backupMaskCanvases;
+			this.backSketchCanvases = this.backupSketchCanvases;
+		}
+		else {
+			this.backMaskCanvases.forEach(
+				canvas => canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height));
+			this.backSketchCanvases.forEach(
+				canvas => canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height));
 		}
 
 		this.setImages(this.imgCanvas, this.backupCanvas);
@@ -694,6 +712,8 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	async save() {
+		this.storeActiveToBack();
+
 		const backupCtx = this.backupCanvas.getContext('2d');
 
 		backupCtx.clearRect(0,0,this.backupCanvas.width,this.backupCanvas.height);
@@ -717,6 +737,7 @@ class MaskEditorDialog extends ComfyDialog {
 		};
 
 		this.saveButton.innerText = "Saving...";
+		this.saveButton.disabled = true;
 
 		const maskDirId = Date.now();
 		const sketchDirId = maskDirId + 1;
@@ -726,9 +747,21 @@ class MaskEditorDialog extends ComfyDialog {
 			await uploadImages(this.backSketchCanvases[i], i, String(sketchDirId));
 
 		this.#updatePathDataHnadler(maskDirId, sketchDirId);
-		this.saveButton.disabled = true;
-		
+		this.#createBackupCanvases();
+
 		this.close();
+	}
+
+	#createBackupCanvases() {
+		const func = canvas => {
+			const backupCanvas = document.createElement('canvas');
+			backupCanvas.width = canvas.width;
+			backupCanvas.height = canvas.height;
+			backupCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height);
+			return backupCanvas;
+		};
+		this.backupMaskCanvases = this.backMaskCanvases.map(func);
+		this.backupSketchCanvases = this.backSketchCanvases.map(func);
 	}
 
 	close() {
