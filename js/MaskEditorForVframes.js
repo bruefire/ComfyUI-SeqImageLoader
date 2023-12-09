@@ -67,6 +67,7 @@ class MaskEditorDialog extends ComfyDialog {
 				}
 			});
 			
+			this.#selectedIndex = 0;
 			if (this.#vframeId != oldId) {
 				this.backupMaskCanvases = null;
 				this.backupSketchCanvases = null;
@@ -117,6 +118,18 @@ class MaskEditorDialog extends ComfyDialog {
 		input.setAttribute('value', '#000');
 		input.addEventListener("change", callback);
 		return input;
+	}
+
+	createRightText(content, callback) {
+		var text = document.createElement('div');
+		text.style.position = "absolute";
+		text.style.top = "0";
+		text.style.right = "0";
+		text.style.fontFamily = "sans-serif";
+		text.style.fontSize = "15px";
+		text.style.color = "#fff";
+		text.innerText = content;
+		return text;
 	}
 
 	createLeftSlider(self, name, callback) {
@@ -226,6 +239,7 @@ class MaskEditorDialog extends ComfyDialog {
 				}
 				this.is_sketch = !this.is_sketch;
 			});
+		this.frameNumberText = this.createRightText("", () => {});
 
 		var brush_size_slider = this.createLeftSlider(self, "Thickness", (event) => {
 			self.brush_size = event.target.value;
@@ -248,6 +262,7 @@ class MaskEditorDialog extends ComfyDialog {
 					this.storeActiveToBack();
 					const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
 					this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+					this.updateFrameNumberText();
 				}
 			});
 		var nextButton = this.createLeftButton("Next",
@@ -256,6 +271,7 @@ class MaskEditorDialog extends ComfyDialog {
 					this.storeActiveToBack();
 					const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
 					this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+					this.updateFrameNumberText();
 				}
 			});
 		var cancelButton = this.createRightButton("Cancel", () => {
@@ -278,6 +294,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 		top_panel.appendChild(modeButton);
 		top_panel.appendChild(colorPicker);
+		top_panel.appendChild(this.frameNumberText);
 		bottom_panel.appendChild(clearButton);
 		bottom_panel.appendChild(ReuseButton);
 		bottom_panel.appendChild(this.saveButton);
@@ -368,6 +385,7 @@ class MaskEditorDialog extends ComfyDialog {
 		}
 
 		this.setImages(this.imgCanvas, this.backupCanvas);
+		this.updateFrameNumberText();
 
 		if(ComfyApp.clipspace_return_node) {
 			this.saveButton.innerText = "Save to node";
@@ -709,6 +727,10 @@ class MaskEditorDialog extends ComfyDialog {
 		this.sketchCanvas.getContext('2d').clearRect(0, 0, this.sketchCanvas.width, this.sketchCanvas.height);
 		this.sketchCanvas.getContext('2d').drawImage(
 			this.backSketchCanvases[this.#selectedIndex], 0, 0, this.sketchCanvas.width, this.sketchCanvas.height);
+	}
+
+	updateFrameNumberText() {
+		this.frameNumberText.innerText = `${String(this.#selectedIndex + 1)} / ${String(this.#paths.length)}`;
 	}
 
 	async save() {
