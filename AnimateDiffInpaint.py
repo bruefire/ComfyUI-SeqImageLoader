@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import numpy as np
 from PIL import Image, ImageOps
@@ -9,11 +10,11 @@ class LoadImagesFromDirInpaint:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "images_id": ("STRING", {"frames_upload": True}),
+                "sequence_id": ("STRING", {"frames_upload": True}),
             },
             "optional": {
-                "image_load_cap": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
             }
         }
     
@@ -24,11 +25,16 @@ class LoadImagesFromDirInpaint:
     CATEGORY = "image"
 
 
-    def load_images(self, images_id: str, image_load_cap: int = 0, start_index: int = 0):
+    def load_images(self, sequence_id: str, start_index: int = 0, end_index: int = 0):
+        if start_index != 0:
+            start_index -= 1
+        if end_index == 0:
+            end_index = sys.maxsize
+
         comfy_custom_dir = os.path.dirname(os.path.abspath(__file__))
         comfy_root_dir = os.path.join(comfy_custom_dir, "..", "..")
 
-        pathParts = images_id.split(":")
+        pathParts = sequence_id.split(":")
         vframeIds = pathParts[len(pathParts) - 1].split("/")
         filenames = pathParts[:-1]
 
@@ -37,7 +43,7 @@ class LoadImagesFromDirInpaint:
         if len(vframeIds) == 1:
             imageDir = os.path.join(comfy_root_dir, "input", "extVideoFrame" + vframeIds[0])
 
-            images = self.load_from_dir(imageDir, image_load_cap, start_index)
+            images = self.load_from_dir(imageDir, end_index, start_index)
             masks = [image.clone() for image in images]
             for mask in masks:
                 mask.fill_(0)
@@ -46,30 +52,24 @@ class LoadImagesFromDirInpaint:
             maskDir = os.path.join(comfy_root_dir, "input", "extVideoFrame" + vframeIds[1])
             sketchDir = os.path.join(comfy_root_dir, "input", "extVideoFrame" + vframeIds[2])
 
-            images = self.load_from_dir_sketch(imageDir, sketchDir, image_load_cap, start_index)
-            masks = self.load_from_dir(maskDir, image_load_cap, start_index)
+            images = self.load_from_dir_sketch(imageDir, sketchDir, end_index, start_index)
+            masks = self.load_from_dir(maskDir, end_index, start_index)
         
 
         return (torch.cat(images, dim=0), torch.cat(masks, dim=0), len(images))
 
 
-    def load_from_dir(self, imageDir, image_load_cap, start_index):
+    def load_from_dir(self, imageDir, end_index, start_index):
 
         img_files = self.getImagePaths(imageDir)
-        img_files = img_files[start_index:]
+        img_files = img_files[start_index:end_index]
 
         images = []
-
-        limit_images = False
-        if image_load_cap > 0:
-            limit_images = True
         image_count = 0
 
         for image_path in img_files:
             if os.path.isdir(image_path):
                 continue
-            if limit_images and image_count >= image_load_cap:
-                break
             i = Image.open(image_path)
             i = ImageOps.exif_transpose(i)
             image = i.convert("RGB")
@@ -85,25 +85,19 @@ class LoadImagesFromDirInpaint:
         return images
     
 
-    def load_from_dir_sketch(self, imageDir, sketchDir, image_load_cap, start_index):
+    def load_from_dir_sketch(self, imageDir, sketchDir, end_index, start_index):
 
         img_files = self.getImagePaths(imageDir)
-        img_files = img_files[start_index:]
+        img_files = img_files[start_index:end_index]
         skt_files = self.getImagePaths(sketchDir)
-        skt_files = skt_files[start_index:]
+        skt_files = skt_files[start_index:end_index]
 
         images = []
-
-        limit_images = False
-        if image_load_cap > 0:
-            limit_images = True
         image_count = 0
 
         for idx, image_path in enumerate(img_files):
             if os.path.isdir(image_path):
                 continue
-            if limit_images and image_count >= image_load_cap:
-                break
             i = Image.open(image_path)
             i = ImageOps.exif_transpose(i).convert("RGBA")
             s = Image.open(skt_files[idx])

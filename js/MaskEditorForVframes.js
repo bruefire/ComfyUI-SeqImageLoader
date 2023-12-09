@@ -126,7 +126,7 @@ class MaskEditorDialog extends ComfyDialog {
 		text.style.top = "0";
 		text.style.right = "0";
 		text.style.fontFamily = "sans-serif";
-		text.style.fontSize = "15px";
+		text.style.fontSize = "20px";
 		text.style.color = "#fff";
 		text.innerText = content;
 		return text;

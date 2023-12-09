@@ -110,7 +110,7 @@ app.registerExtension({
         
         // widget setting
         // Adds an upload button to the nodes
-		if (nodeData?.input?.required?.images_id?.[1]?.frames_upload === true) {
+		if (nodeData?.input?.required?.sequence_id?.[1]?.frames_upload === true) {
 			nodeData.input.required.upload = ["VFRAMESUPLOAD"];
 		}
     },
@@ -118,7 +118,7 @@ app.registerExtension({
     {
         return {
             VFRAMESUPLOAD(node, inputName, inputData, app) {
-                const idWidget = node.widgets.find((w) => w.name === "images_id");
+                const idWidget = node.widgets.find((w) => w.name === "sequence_id");
                 
                 function showImage(name) {
                     const img = new Image();
