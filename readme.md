@@ -28,8 +28,8 @@ Add this repository to the custom_nodes/ directory.
 ## Example With AnimateDiff
 ![iamge](docs/dogcat.gif)
 
-[workflow](dogcat-workflow.json)  
-[video source](https://www.pexels.com/video/a-pet-cat-standing-on-the-brick-floor-of-a-garden-3009091/)  
+[Workflow](dogcat-workflow.json) (It's depend on [ComfyUI-AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved))  
+[Video source](https://www.pexels.com/video/a-pet-cat-standing-on-the-brick-floor-of-a-garden-3009091/)  
 
 ## Other
 Temporary frame data accumulates in the input/ directory, so please delete data that is no longer needed at an appropriate time.
