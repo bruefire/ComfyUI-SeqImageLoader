@@ -1,27 +1,32 @@
 # ComfyUI Sequential Image Loader
 
 ## Overview
-これはGUI上でフレーム毎にマスキング(とスケッチ)を行うためのComfyUI用の拡張ノードです。  
+This is an extension node for ComfyUI that allows you to load frames from a video in bulk and perform masking and sketching on each frame through a GUI.
+
+## Install
+Add this repository to the custom_nodes/ directory.
 
 ## Usage
 
-### ノードについて
+### About "SequentialImageLoader" Node
+
 #### input
-* sequence_id: 無視してください (内部処理でのみ使います)。  
-* upload button: ダイアログから動画のフレームを含むディレクトリ世指定します。  
-* start_index: 開始フレーム番号を指定します。0で無効。  
-* end_index: 終了フレーム番号を指定します。0で無効。  
+* sequence_id: Please ignore (used for internal processing only).
+* upload button: Specify the directory containing frames from the video using the dialog.
+(Use ffmpeg or similar to extract frames from the video.)
+* start_index: Specify the start frame number. 0 to disable.
+* end_index: Specify the end frame number. 0 to disable.
 #### output
-* images: 読み込んだフレームデータです。スケッチした場合、その内容が適用されます。  
-* mask_images: 各フレームのマスクが画像として出力されます。Mask To Imageノード等でマスクデータに変換が必要です。  
-* image_count: 処理フレーム数。  
+* images: Loaded frame data. If sketching is applied, it will be reflected in this output.
+* mask_images: Masks for each frame are output as images. You may need to convert them to mask data using a Mask To Image node, for example.
+* image_count: Number of processed frames.
 
-### マスクエディターについて
-	1. フレームを読み込んだ後にノードを右クリックして、"Open In MaskEditor"を選択します。  
-	2. 出現したエディタ上でマスキングと必要に応じてスケッチを行います。  
+### About the Mask Editor
+1. After loading the frames, right-click the node and select "Open In MaskEditor".
+2. In the editor that appears, perform masking and sketching as needed. It is based on the standard Mask Editor.
 	
-## Example
-
+## Example With AnimateDiff
+![iamge](docs/dogcat.gif)
 
 ## Other
-input/ディレクトリに作業中の一時フレームデータが溜まっていくので、適当なタイミングで使わなくなったデータを削除してください。  
+Temporary frame data accumulates in the input/ directory, so please delete data that is no longer needed at an appropriate time.

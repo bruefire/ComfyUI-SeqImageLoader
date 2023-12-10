@@ -333,7 +333,7 @@ class MaskEditorDialog extends ComfyDialog {
 			this.maskCtx = maskCanvas.getContext('2d');
 			this.backupCtx = backupCanvas.getContext('2d');
 
-			this.setEventHandler(maskCanvas);
+			this.setMaskEventHandler(maskCanvas);
 
 			this.is_layout_created = true;
 			this.is_sketch = false;
@@ -412,6 +412,9 @@ class MaskEditorDialog extends ComfyDialog {
 
 		this.element.style.display = "block";
 		this.element.style.zIndex = 8888; // NOTE: alert dialog must be high priority.
+		
+		document.addEventListener('pointerup', MaskEditorDialog.handlePointerUp);
+		document.addEventListener('keydown', MaskEditorDialog.handleKeyDown);
 	}
 
 	isOpened() {
@@ -503,7 +506,7 @@ class MaskEditorDialog extends ComfyDialog {
 		this.image = orig_image;
 	}
 
-	setEventHandler(maskCanvas) {
+	setMaskEventHandler(maskCanvas) {
 		maskCanvas.addEventListener("contextmenu", (event) => {
 			event.preventDefault();
 		});
@@ -511,12 +514,10 @@ class MaskEditorDialog extends ComfyDialog {
 		const self = this;
 		maskCanvas.addEventListener('wheel', (event) => this.handleWheelEvent(self,event));
 		maskCanvas.addEventListener('pointerdown', (event) => this.handlePointerDown(self,event));
-		document.addEventListener('pointerup', MaskEditorDialog.handlePointerUp);
 		maskCanvas.addEventListener('pointermove', (event) => this.draw_move(self,event));
 		maskCanvas.addEventListener('touchmove', (event) => this.draw_move(self,event));
 		maskCanvas.addEventListener('pointerover', (event) => { this.brush.style.display = "block"; });
 		maskCanvas.addEventListener('pointerleave', (event) => { this.brush.style.display = "none"; });
-		document.addEventListener('keydown', MaskEditorDialog.handleKeyDown);
 	}
 
 	brush_size = 10;
