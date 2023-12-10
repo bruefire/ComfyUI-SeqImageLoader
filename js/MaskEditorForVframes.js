@@ -260,24 +260,8 @@ class MaskEditorDialog extends ComfyDialog {
 					this.maskCanvas.getContext('2d').drawImage(prevBack, 0, 0, prevBack.width, prevBack.height);
 				}
 			});
-		var prevButton = this.createLeftButton("Prev",
-			() => {
-				if (this.#selectedIndex > 0) {
-					this.storeActiveToBack();
-					const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
-					this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
-					this.updateFrameNumberText();
-				}
-			});
-		var nextButton = this.createLeftButton("Next",
-			() => {
-				if (this.#selectedIndex < this.#paths.length - 1) {
-					this.storeActiveToBack();
-					const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
-					this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
-					this.updateFrameNumberText();
-				}
-			});
+		var prevButton = this.createLeftButton("Prev", () => this.moveToPrev());
+		var nextButton = this.createLeftButton("Next", () => this.moveToNext());
 		var cancelButton = this.createRightButton("Cancel", () => {
 			document.removeEventListener("mouseup", MaskEditorDialog.handleMouseUp);
 			document.removeEventListener("keydown", MaskEditorDialog.handleKeyDown);
@@ -549,6 +533,10 @@ class MaskEditorDialog extends ComfyDialog {
 			self.brush_size = Math.max(self.brush_size-2, 1);
 		} else if(event.key === 'Enter') {
 			self.save();
+		} else if (event.key == 'ArrowLeft') {
+			self.moveToPrev();
+		} else if (event.key == 'ArrowRight') {
+			self.moveToNext();
 		}
 
 		self.updateBrushPreview(self);
@@ -762,6 +750,24 @@ class MaskEditorDialog extends ComfyDialog {
 
 	updateFrameNumberText() {
 		this.frameNumberText.innerText = `${String(this.#selectedIndex + 1)} / ${String(this.#paths.length)}`;
+	}
+
+	moveToPrev() {
+		if (this.#selectedIndex > 0) {
+			this.storeActiveToBack();
+			const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
+			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+			this.updateFrameNumberText();
+		}
+	}
+
+	moveToNext() {
+		if (this.#selectedIndex < this.#paths.length - 1) {
+			this.storeActiveToBack();
+			const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
+			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+			this.updateFrameNumberText();
+		}
 	}
 
 	async save() {

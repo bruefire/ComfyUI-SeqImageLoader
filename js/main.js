@@ -4,9 +4,11 @@ import { ComfyApp } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 import MaskEditorForVframes from "./MaskEditorForVframes.js";
 
+let sequentialimageloader_getExtraMenuOptionsOverrided = false;
+
 app.registerExtension({  
 
-    name: "ComfyUI.animatediff.inpaint",
+    name: "ComfyUI.sequentialimageloader.inpaint",
     
     async init(app)
     {   
@@ -38,25 +40,28 @@ app.registerExtension({
     {
         if (nodeData.name !== "VFrame Loader With Mask Editor") 
             return;
-        
-        // menu initializing
-        const originalProto = nodeType.prototype.getExtraMenuOptions;
-        nodeType.prototype.getExtraMenuOptions = function (_, options){
-            // do original processing
-            originalProto.bind(this)(_, options); 
 
-            // add mask menu
-            if (this.extVframes) {
-                options.push({
-                        content: "Open in MaskEditor",
-                        callback: (obj) => {
-                            // ComfyApp.copyToClipspace(this);
-                            // ComfyApp.clipspace_return_node = this;
-                            
-                            ComfyApp.ext_open_maskeditor_for_vframes(this.widgets[0]);
-                        }
-                    });
+        if (!sequentialimageloader_getExtraMenuOptionsOverrided) {
+            // menu initializing
+            const originalProto = nodeType.prototype.getExtraMenuOptions;
+            nodeType.prototype.getExtraMenuOptions = function (_, options){
+                // do original processing
+                originalProto.bind(this)(_, options); 
+    
+                // add mask menu
+                if (this.extVframes) {
+                    options.push({
+                            content: "Open in MaskEditor",
+                            callback: (obj) => {
+                                // ComfyApp.copyToClipspace(this);
+                                // ComfyApp.clipspace_return_node = this;
+                                
+                                ComfyApp.ext_open_maskeditor_for_vframes(this.widgets[0]);
+                            }
+                        });
+                }
             }
+            sequentialimageloader_getExtraMenuOptionsOverrided = true;
         }
 
         // head image drawing
