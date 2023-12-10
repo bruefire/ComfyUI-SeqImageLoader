@@ -54,28 +54,32 @@ class MaskEditorDialog extends ComfyDialog {
 	set path_data(value) {
 		const parts = value?.split(":");
 		if (parts) {
-			const oldId = this.#vframeId;
+			const oldId = this.#seqImgId;
 
 			const dirIds = parts.pop();
-			const id = dirIds.split("/")[0];
-			this.#vframeId = id;
+			const ids = dirIds.split("/");
+			this.#seqImgId = ids[0];
+			this.#seqMskId = ids[1];
+			this.#seqSkhId = ids[2];
 			this.#paths = parts.map(file_name => {
 				return {
 					filename: file_name,
-					subfolder: "extVideoFrame" + id,
+					subfolder: "extVideoFrame" + this.#seqImgId,
 					type: "input"
 				}
 			});
 			
 			this.#selectedIndex = 0;
-			if (this.#vframeId != oldId) {
+			if (this.#seqImgId != oldId) {
 				this.backupMaskCanvases = null;
 				this.backupSketchCanvases = null;
 			}
 		}
 	}
 	#paths = null;
-	#vframeId = -1;
+	#seqImgId = -1;
+	#seqMskId = null;
+	#seqSkhId = null;
 
 	#selectedIndex = 0;
 
@@ -366,6 +370,33 @@ class MaskEditorDialog extends ComfyDialog {
 
 			const config = { attributes: true };
 			observer.observe(this.element, config);
+
+			if (this.#seqMskId) {
+				const maskPaths = this.#paths.map(data => {
+					let data0 = Object.assign({}, data);
+					data0.subfolder = "extVideoFrame" + String(this.#seqMskId);
+					return data0;
+				});
+				const sketchPaths = this.#paths.map(data => {
+					let data0 = Object.assign({}, data);
+					data0.subfolder = "extVideoFrame" + String(this.#seqSkhId);
+					return data0;
+				});
+				const loadPrev = (path, i, canvases) => {
+					const params = new URLSearchParams(path);
+					const url = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+					let img = new Image();
+					img.src = url;
+					img.onload = () => {
+						let canvas = canvases[i];
+						canvas.width = img.width;
+						canvas.height = img.height;
+						canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+					};
+				};
+				maskPaths.forEach((elem, i) => loadPrev(elem, i, this.backMaskCanvases));
+				sketchPaths.forEach((elem, i) => loadPrev(elem, i, this.backSketchCanvases));
+			}
 
 		}
 		else if(this.#paths.length != this.backMaskCanvases.length) {
