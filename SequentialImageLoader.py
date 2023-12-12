@@ -5,18 +5,7 @@ import numpy as np
 from PIL import Image, ImageOps
 
 
-class LoadImagesFromDirInpaint:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "sequence_id": ("STRING", {"frames_upload": True}),
-            },
-            "optional": {
-                "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
-                "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
-            }
-        }
+class LoadImagesInpaint:
     
     RETURN_TYPES = ("IMAGE", "IMAGE", "INT")
     RETURN_NAMES  = ("images", "mask_images", "image_count",)
@@ -130,4 +119,32 @@ class LoadImagesFromDirInpaint:
         img_files = [os.path.join(imageDir, x) for x in img_files]
 
         return img_files
+
+
+class LoadImagesFromDirInpaint(LoadImagesInpaint): 
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "sequence_id": ("STRING", {"frames_upload": True}),
+            },
+            "optional": {
+                "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+            }
+        }
+    
+
+class LoadImagesFromFileInpaint(LoadImagesInpaint): 
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "sequence_id": ("STRING", {"video_upload": True}),
+            },
+            "optional": {
+                "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+                "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+            }
+        }
 

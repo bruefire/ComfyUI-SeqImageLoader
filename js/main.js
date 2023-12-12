@@ -3,8 +3,113 @@ import { app } from "../../../scripts/app.js";
 import { ComfyApp } from "../../../scripts/app.js";
 import { api } from "../../../scripts/api.js";
 import MaskEditorForVframes from "./MaskEditorForVframes.js";
+import getVideoFrames from "./getVideoFrames_js/mod.js" 
 
-let sequentialimageloader_getExtraMenuOptionsOverrided = false;
+let sequentialimageloader_getExtraMenuOptionsOverrided = [];
+
+
+    
+function showImage(name, node) {
+    const img = new Image();
+    img.onload = () => {
+        node.extVframes = [img];
+        app.graph.setDirtyCanvas(true);
+    };
+    let folder_separator = name.lastIndexOf("/");
+    let subfolder = "";
+    if (folder_separator > -1) {
+        subfolder = name.substring(0, folder_separator);
+        name = name.substring(folder_separator + 1);
+    }
+    img.src = api.apiURL(`/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}`);
+    node.setSizeForImage?.();
+}
+
+async function uploadFile(file, updateNode, vframeId, node) {
+    if (!file.type.startsWith("image/")) 
+        return; 
+
+    try {
+        // Wrap file in formdata so it includes filename
+        const body = new FormData();
+        body.append("image", file, file.name);
+        body.append("subfolder", "extVideoFrame" + String(vframeId));
+        const resp = await api.fetchApi("/upload/image", {
+            method: "POST",
+            body,
+        });
+
+        if (resp.status === 200) {
+            const data = await resp.json();
+            // update the widget value
+            let path = data.name;
+            if (data.subfolder) path = data.subfolder + "/" + path;
+
+            if (updateNode) {
+                showImage(path, node);
+            }
+        } else {
+            alert(resp.status + " - " + resp.statusText);
+        }
+    } catch (error) {
+        alert(error);
+    }
+}
+
+async function uplaodSequentialDataCore(node, inputName, inputData, app, fileInput) {
+    const idWidget = node.widgets.find((w) => w.name === "sequence_id");
+
+    // Add our own callback to the combo widget to render an image when it changes
+    idWidget.callback = function () {
+        // let imageData = idWidget.value.split(":");
+        // let dirIds = imageData[imageData.length - 1].split("/");
+        // showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0]);
+    };
+    
+    // On load if we have a value then render the image
+    requestAnimationFrame(() => {
+        if (idWidget.value) {
+            let imageData = idWidget.value.split(":");
+            let dirIds = imageData[imageData.length - 1].split("/");
+            showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0], node);
+        }
+    });
+    
+    document.body.append(fileInput);
+
+    // Create the button widget for selecting the files
+    let uploadWidget = node.addWidget("button", "choose image directory to upload", "image", () => {
+        fileInput.click();
+    });
+    uploadWidget.serialize = false;
+
+    // Add handler to check if an image is being dragged over our node
+    node.onDragOver = function (e) {
+        if (e.dataTransfer && e.dataTransfer.items) {
+            const image = [...e.dataTransfer.items].find((f) => f.kind === "file");
+            return !!image;
+        }
+
+        return false;
+    };
+
+    // On drop upload files
+    node.onDragDrop = function (e) {
+        // console.log("onDragDrop called");
+        // let handled = false;
+        // for (const file of e.dataTransfer.files) {
+        //     if (file.type.startsWith("image/")) {
+        //         uploadFile(file, !handled); // Dont await these, any order is fine, only update on first one
+        //         handled = true;
+        //     }
+        // }
+
+        return handled;
+    };
+
+    return { widget: uploadWidget };
+}
+
 
 app.registerExtension({  
 
@@ -38,10 +143,11 @@ app.registerExtension({
     },
     async beforeRegisterNodeDef(nodeType, nodeData, app)
     {
-        if (nodeData.name !== "VFrame Loader With Mask Editor") 
+        if (nodeData.name !== "VFrame Loader With Mask Editor" 
+        && nodeData.name !== "Video Loader With Mask Editor") 
             return;
 
-        if (!sequentialimageloader_getExtraMenuOptionsOverrided) {
+        if (!sequentialimageloader_getExtraMenuOptionsOverrided.includes(nodeData.name)) {
             // menu initializing
             const originalProto = nodeType.prototype.getExtraMenuOptions;
             nodeType.prototype.getExtraMenuOptions = function (_, options){
@@ -61,7 +167,7 @@ app.registerExtension({
                         });
                 }
             }
-            sequentialimageloader_getExtraMenuOptionsOverrided = true;
+            sequentialimageloader_getExtraMenuOptionsOverrided.push(nodeData.name);
         }
 
         // head image drawing
@@ -118,76 +224,16 @@ app.registerExtension({
 		if (nodeData?.input?.required?.sequence_id?.[1]?.frames_upload === true) {
 			nodeData.input.required.upload = ["VFRAMESUPLOAD"];
 		}
+        else if (nodeData?.input?.required?.sequence_id?.[1]?.video_upload === true) {
+			nodeData.input.required.upload = ["VIDEOUPLOAD"];
+        }
     },
     async getCustomWidgets()
     {
         return {
             VFRAMESUPLOAD(node, inputName, inputData, app) {
                 const idWidget = node.widgets.find((w) => w.name === "sequence_id");
-                
-                function showImage(name) {
-                    const img = new Image();
-                    img.onload = () => {
-                        node.extVframes = [img];
-                        app.graph.setDirtyCanvas(true);
-                    };
-                    let folder_separator = name.lastIndexOf("/");
-                    let subfolder = "";
-                    if (folder_separator > -1) {
-                        subfolder = name.substring(0, folder_separator);
-                        name = name.substring(folder_separator + 1);
-                    }
-                    img.src = api.apiURL(`/view?filename=${encodeURIComponent(name)}&type=input&subfolder=${subfolder}${app.getPreviewFormatParam()}`);
-                    node.setSizeForImage?.();
-                }
-        
-                // Add our own callback to the combo widget to render an image when it changes
-                idWidget.callback = function () {
-                    // let imageData = idWidget.value.split(":");
-                    // let dirIds = imageData[imageData.length - 1].split("/");
-                    // showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0]);
-                };
-                
-                // On load if we have a value then render the image
-                requestAnimationFrame(() => {
-                    if (idWidget.value) {
-                        let imageData = idWidget.value.split(":");
-                        let dirIds = imageData[imageData.length - 1].split("/");
-                        showImage("extVideoFrame" + dirIds[0] + "/" + imageData[0]);
-                    }
-                });
-                
-                async function uploadFile(file, updateNode, vframeId) {
-                    if (!file.type.startsWith("image/")) 
-                        return; 
-        
-                    try {
-                        // Wrap file in formdata so it includes filename
-                        const body = new FormData();
-                        body.append("image", file, file.name);
-                        body.append("subfolder", "extVideoFrame" + String(vframeId));
-                        const resp = await api.fetchApi("/upload/image", {
-                            method: "POST",
-                            body,
-                        });
-        
-                        if (resp.status === 200) {
-                            const data = await resp.json();
-                            // update the widget value
-                            let path = data.name;
-                            if (data.subfolder) path = data.subfolder + "/" + path;
-        
-                            if (updateNode) {
-                                showImage(path);
-                            }
-                        } else {
-                            alert(resp.status + " - " + resp.statusText);
-                        }
-                    } catch (error) {
-                        alert(error);
-                    }
-                }
-                
+
                 const fileInput = document.createElement("input");
                 Object.assign(fileInput, {
                     type: "file",
@@ -197,50 +243,90 @@ app.registerExtension({
                         if (fileInput.files.length) {
                             const vframeId = Date.now();
                             let vframeData = "";
-        
+            
                             for (let i = 0; i < fileInput.files.length; i++) {
                                 vframeData += fileInput.files[i].name + ":";
                                 await uploadFile(
-                                    fileInput.files[i], i === 0, vframeId);
+                                    fileInput.files[i], i === 0, vframeId, node);
                             }
                             vframeData += String(vframeId);
                             idWidget.value = vframeData;
                         }
                     },
                 });
-                document.body.append(fileInput);
-        
-                // Create the button widget for selecting the files
-                let uploadWidget = node.addWidget("button", "choose image directory to upload", "image", () => {
-                    fileInput.click();
-                });
-                uploadWidget.serialize = false;
-        
-                // Add handler to check if an image is being dragged over our node
-                node.onDragOver = function (e) {
-                    if (e.dataTransfer && e.dataTransfer.items) {
-                        const image = [...e.dataTransfer.items].find((f) => f.kind === "file");
-                        return !!image;
-                    }
-        
-                    return false;
-                };
-        
-                // On drop upload files
-                node.onDragDrop = function (e) {
-                    console.log("onDragDrop called");
-                    let handled = false;
-                    for (const file of e.dataTransfer.files) {
-                        if (file.type.startsWith("image/")) {
-                            uploadFile(file, !handled); // Dont await these, any order is fine, only update on first one
-                            handled = true;
+
+                return uplaodSequentialDataCore(node, inputName, inputData, app, fileInput);
+            },
+            VIDEOUPLOAD(node, inputName, inputData, app) {
+                const idWidget = node.widgets.find((w) => w.name === "sequence_id");
+
+                async function getFramesFromVideo(file) {
+                    const imageType = 'image/png';
+                    let frameCount = 0;
+                    let tempCanvas = document.createElement('canvas');
+                    let ctx = tempCanvas.getContext("2d"); 
+                    let videoUrl = URL.createObjectURL(file);
+                    let vframes = [];
+                
+                    await getVideoFrames({
+                      videoUrl,
+                      async onFrame(vframe) {  // `frame` is a VideoFrame object
+                        vframes.push(vframe);
+                      },
+                      onConfig(config) {
+                        tempCanvas.width = config.codedWidth;
+                        tempCanvas.height = config.codedHeight;
+                      },
+                      onFinish() {
+                      },
+                    });
+
+                    let frames = await Promise.all(
+                        vframes.map(vframe => 
+                            new Promise((resolve, reject) => {
+                                ctx.drawImage(vframe, 0, 0, tempCanvas.width, tempCanvas.height);
+                                vframe.close();
+                                
+                                tempCanvas.toBlob(blob => {
+                                    if (blob) {
+                                        blob.name = ("00000000" + frameCount++).slice(-8) + ".png";
+                                        resolve(blob);
+                                    } else {
+                                        reject(new Error('blob creating failed'));
+                                    }
+                                }, imageType);
+                            })));
+                
+                    URL.revokeObjectURL(videoUrl); // revoke URL to prevent memory leak
+                    console.log("Frame extraction completed with " + frameCount + " frames");
+
+                    return frames;
+                }
+                
+                const fileInput = document.createElement("input");
+                Object.assign(fileInput, {
+                    type: "file",
+                    style: "display: none",
+                    accept: "video/*",
+                    onchange: async () => {
+                        if (fileInput.files.length) {
+                            const file = fileInput.files[0];
+                            const frames = await getFramesFromVideo(file);
+
+                            const vframeId = Date.now();
+                            let vframeData = "";
+            
+                            for (let i = 0; i < frames.length; i++) {
+                                vframeData += frames[i].name + ":";
+                                await uploadFile(frames[i], i === 0, vframeId, node);
+                            }
+                            vframeData += String(vframeId);
+                            idWidget.value = vframeData;
                         }
-                    }
-        
-                    return handled;
-                };
-        
-                return { widget: uploadWidget };
+                    },
+                });
+
+                return uplaodSequentialDataCore(node, inputName, inputData, app, fileInput);
             }
         }
     }

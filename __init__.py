@@ -1,10 +1,17 @@
 import os, shutil
 import folder_paths
 from .SequentialImageLoader import LoadImagesFromDirInpaint
+from .SequentialImageLoader import LoadImagesFromFileInpaint
 
 
-NODE_CLASS_MAPPINGS = { "VFrame Loader With Mask Editor" : LoadImagesFromDirInpaint }
-NODE_DISPLAY_NAME_MAPPINGS = { "VFrame Loader With Mask Editor" : "SequentialImageLoader" }
+NODE_CLASS_MAPPINGS = { 
+    "VFrame Loader With Mask Editor" : LoadImagesFromDirInpaint,
+    "Video Loader With Mask Editor" : LoadImagesFromFileInpaint 
+}
+NODE_DISPLAY_NAME_MAPPINGS = { 
+    "VFrame Loader With Mask Editor" : "SequentialImageLoader",
+    "Video Loader With Mask Editor" : "VideoExtractor",
+}
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
 
 
