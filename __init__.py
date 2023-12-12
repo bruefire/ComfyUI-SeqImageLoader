@@ -10,7 +10,7 @@ NODE_CLASS_MAPPINGS = {
 }
 NODE_DISPLAY_NAME_MAPPINGS = { 
     "VFrame Loader With Mask Editor" : "SequentialImageLoader",
-    "Video Loader With Mask Editor" : "VideoExtractor",
+    "Video Loader With Mask Editor" : "VideoFrameExtractor",
 }
 __all__ = ['NODE_CLASS_MAPPINGS', 'NODE_DISPLAY_NAME_MAPPINGS']
 

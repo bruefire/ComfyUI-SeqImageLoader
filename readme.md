@@ -9,6 +9,7 @@ Add this repository to the custom_nodes/ directory.
 ## Usage
 
 ### About "SequentialImageLoader" Node
+This is in the Image category.
 
 #### input
 * sequence_id: Please ignore (used for internal processing only).
@@ -20,6 +21,10 @@ Add this repository to the custom_nodes/ directory.
 * images: Loaded frame data. If sketching is applied, it will be reflected in this output.
 * mask_images: Masks for each frame are output as images. You may need to convert them to mask data using a Mask To Image node, for example.
 * image_count: Number of processed frames.
+
+### About "VideoFrameExtractor" Node
+Instead of specifying a directory containing frames, you specify a video file. Currently, only mp4 format is supported. 
+Otherwise, it is the same as the SequentialImageLoader Node.
 
 ### About the Mask Editor
 1. After loading the frames, right-click the node and select "Open In MaskEditor".

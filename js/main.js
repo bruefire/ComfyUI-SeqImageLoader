@@ -78,7 +78,7 @@ async function uplaodSequentialDataCore(node, inputName, inputData, app, fileInp
     document.body.append(fileInput);
 
     // Create the button widget for selecting the files
-    let uploadWidget = node.addWidget("button", "choose image directory to upload", "image", () => {
+    let uploadWidget = node.addWidget("button", fileInput['data-disp-msg'], "image", () => {
         fileInput.click();
     });
     uploadWidget.serialize = false;
@@ -239,6 +239,7 @@ app.registerExtension({
                     type: "file",
                     style: "display: none",
                     webkitdirectory: true,
+                    'data-disp-msg': "choose image directory to upload",
                     onchange: async () => {
                         if (fileInput.files.length) {
                             const vframeId = Date.now();
@@ -308,6 +309,7 @@ app.registerExtension({
                     type: "file",
                     style: "display: none",
                     accept: "video/*",
+                    'data-disp-msg': "choose mp4 to upload",
                     onchange: async () => {
                         if (fileInput.files.length) {
                             const file = fileInput.files[0];
