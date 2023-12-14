@@ -24,7 +24,8 @@ This is in the Image category.
 
 ### About "VideoFrameExtractor" Node
 Instead of specifying a directory containing frames, you specify a video file. Currently, only mp4 format is supported. 
-Otherwise, it is the same as the SequentialImageLoader Node.
+Otherwise, it is the same as the SequentialImageLoader Node.  
+(I used [getVideoFrames.js](https://github.com/josephrocca/getVideoFrames.js) for extracting frames from MP4)
 
 ### About the Mask Editor
 1. After loading the frames, right-click the node and select "Open In MaskEditor".

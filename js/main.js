@@ -264,31 +264,33 @@ app.registerExtension({
                 async function getFramesFromVideo(file) {
                     const imageType = 'image/png';
                     let frameCount = 0;
-                    let tempCanvas = document.createElement('canvas');
-                    let ctx = tempCanvas.getContext("2d"); 
+                    let tWidth, tHeight;
                     let videoUrl = URL.createObjectURL(file);
-                    let vframes = [];
+                    let fCanvases = [];
                 
                     await getVideoFrames({
                       videoUrl,
                       async onFrame(vframe) {  // `frame` is a VideoFrame object
-                        vframes.push(vframe);
+                        let fCanvas = document.createElement('canvas');
+                        fCanvas.width = tWidth;
+                        fCanvas.height = tHeight;
+                        
+                        fCanvas.getContext('2d').drawImage(vframe, 0, 0, fCanvas.width, fCanvas.height);
+                        vframe.close();
+                        fCanvases.push(fCanvas);
                       },
                       onConfig(config) {
-                        tempCanvas.width = config.codedWidth;
-                        tempCanvas.height = config.codedHeight;
+                        tWidth = config.codedWidth;
+                        tHeight = config.codedHeight;
                       },
                       onFinish() {
                       },
                     });
 
                     let frames = await Promise.all(
-                        vframes.map(vframe => 
+                        fCanvases.map(fCanvas => 
                             new Promise((resolve, reject) => {
-                                ctx.drawImage(vframe, 0, 0, tempCanvas.width, tempCanvas.height);
-                                vframe.close();
-                                
-                                tempCanvas.toBlob(blob => {
+                                fCanvas.toBlob(blob => {
                                     if (blob) {
                                         blob.name = ("00000000" + frameCount++).slice(-8) + ".png";
                                         resolve(blob);
