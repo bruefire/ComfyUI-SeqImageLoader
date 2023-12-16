@@ -290,9 +290,10 @@ app.registerExtension({
                     let frames = await Promise.all(
                         fCanvases.map(fCanvas => 
                             new Promise((resolve, reject) => {
+                                const fid = frameCount++;
                                 fCanvas.toBlob(blob => {
                                     if (blob) {
-                                        blob.name = ("00000000" + frameCount++).slice(-8) + ".png";
+                                        blob.name = ("00000000" + fid).slice(-8) + ".png";
                                         resolve(blob);
                                     } else {
                                         reject(new Error('blob creating failed'));
