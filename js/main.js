@@ -263,7 +263,8 @@ app.registerExtension({
 
                 async function getFramesFromVideo(file) {
                     const imageType = 'image/png';
-                    let frameCount = 0;
+                    let loadFrameCount = 0;
+                    let blobFrameCount = 0;
                     let tWidth, tHeight;
                     let videoUrl = URL.createObjectURL(file);
                     let fCanvases = [];
@@ -278,6 +279,8 @@ app.registerExtension({
                         fCanvas.getContext('2d').drawImage(vframe, 0, 0, fCanvas.width, fCanvas.height);
                         vframe.close();
                         fCanvases.push(fCanvas);
+
+                        idWidget.value = (++loadFrameCount) + " frames loaded..";
                       },
                       onConfig(config) {
                         tWidth = config.codedWidth;
@@ -287,12 +290,14 @@ app.registerExtension({
                       },
                     });
 
+                    let blobFrameCount2 = 0;
                     let frames = await Promise.all(
                         fCanvases.map(fCanvas => 
                             new Promise((resolve, reject) => {
-                                const fid = frameCount++;
+                                const fid = blobFrameCount++;
                                 fCanvas.toBlob(blob => {
                                     if (blob) {
+                                        idWidget.value = (++blobFrameCount2) + "/" + (loadFrameCount) + " frames prepared..";
                                         blob.name = ("00000000" + fid).slice(-8) + ".png";
                                         resolve(blob);
                                     } else {
@@ -302,7 +307,7 @@ app.registerExtension({
                             })));
                 
                     URL.revokeObjectURL(videoUrl); // revoke URL to prevent memory leak
-                    console.log("Frame extraction completed with " + frameCount + " frames");
+                    console.log("Frame extraction completed with " + blobFrameCount + " frames");
 
                     return frames;
                 }
