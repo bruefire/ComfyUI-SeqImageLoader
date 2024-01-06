@@ -169,6 +169,34 @@ class MaskEditorDialog extends ComfyDialog {
 		return divElement;
 	}
 
+	createRightSlider(self, callbackCg, callbacKd) {
+		const divElement = document.createElement('div');
+		divElement.id = "maskeditor-frame-slider";
+		divElement.style.cssFloat = "left";
+		divElement.style.fontFamily = "sans-serif";
+		divElement.style.marginRight = "4px";
+		divElement.style.color = "var(--input-text)";
+		divElement.style.backgroundColor = "var(--comfy-input-bg)";
+		divElement.style.borderRadius = "8px";
+		divElement.style.borderColor = "var(--border-color)";
+		divElement.style.borderStyle = "solid";
+		divElement.style.fontSize = "15px";
+		divElement.style.height = "21px";
+		divElement.style.padding = "1px 6px";
+		divElement.style.display = "flex";
+		divElement.style.position = "relative";
+		divElement.style.top = "2px";
+
+		self.frame_slider_input = document.createElement('input');
+		self.frame_slider_input.setAttribute('type', 'range');
+		self.frame_slider_input.addEventListener("change", callbackCg);
+		self.frame_slider_input.addEventListener('keydown', callbacKd);
+		
+		divElement.appendChild(self.frame_slider_input);
+
+		return divElement;
+	}
+
 	setlayout(imgCanvas, maskCanvas, sketchCanvas) {
 		const self = this;
 
@@ -244,6 +272,17 @@ class MaskEditorDialog extends ComfyDialog {
 				this.is_sketch = !this.is_sketch;
 			});
 		this.frameNumberText = this.createRightText("", () => {});
+		
+		this.frameNumberSlider = this.createRightSlider(self, 
+		(event) => {
+			self.moveTo(event.target.value - 1);
+			self.updateFrameNumberUi(false);
+		},
+		(event) => {
+			if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+				event.preventDefault();
+			}
+		});
 
 		var brush_size_slider = this.createLeftSlider(self, "Thickness", (event) => {
 			self.brush_size = event.target.value;
@@ -283,6 +322,7 @@ class MaskEditorDialog extends ComfyDialog {
 		top_panel.appendChild(modeButton);
 		top_panel.appendChild(colorPicker);
 		top_panel.appendChild(this.frameNumberText);
+		top_panel.appendChild(this.frameNumberSlider);
 		bottom_panel.appendChild(clearButton);
 		bottom_panel.appendChild(ReuseButton);
 		bottom_panel.appendChild(this.saveButton);
@@ -400,7 +440,7 @@ class MaskEditorDialog extends ComfyDialog {
 		}
 
 		this.setImages(this.imgCanvas, this.backupCanvas);
-		this.updateFrameNumberText();
+		this.updateFrameNumberUi(true);
 
 		if(ComfyApp.clipspace_return_node) {
 			this.saveButton.innerText = "Save to node";
@@ -749,8 +789,13 @@ class MaskEditorDialog extends ComfyDialog {
 			this.backSketchCanvases[this.#selectedIndex], 0, 0, this.sketchCanvas.width, this.sketchCanvas.height);
 	}
 
-	updateFrameNumberText() {
-		this.frameNumberText.innerText = `${String(this.#selectedIndex + 1)} / ${String(this.#paths.length)}`;
+	updateFrameNumberUi(updateSlider) {
+		let newValue = this.#selectedIndex + 1;
+		this.frameNumberText.innerText = `${String(newValue)} / ${String(this.#paths.length)}`;
+		this.frame_slider_input.min = 1;
+		this.frame_slider_input.max = this.#paths.length;
+		if (updateSlider)
+			this.frame_slider_input.value = newValue;
 	}
 
 	moveToPrev() {
@@ -758,7 +803,7 @@ class MaskEditorDialog extends ComfyDialog {
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
-			this.updateFrameNumberText();
+			this.updateFrameNumberUi(true);
 		}
 	}
 
@@ -767,7 +812,19 @@ class MaskEditorDialog extends ComfyDialog {
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
-			this.updateFrameNumberText();
+			this.updateFrameNumberUi(true);
+		}
+	}
+
+	moveTo(newIndex) {
+		if (newIndex != this.#selectedIndex 
+			&& newIndex >= 0 
+			&& newIndex < this.#paths.length) {
+			this.storeActiveToBack();
+			this.#selectedIndex = newIndex;
+			const params = new URLSearchParams(this.#paths[this.#selectedIndex]);
+			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
+			this.updateFrameNumberUi(true);
 		}
 	}
 
