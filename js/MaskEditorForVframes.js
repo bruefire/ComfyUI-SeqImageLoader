@@ -126,7 +126,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 	createRightText(content, callback) {
 		var text = document.createElement('div');
-		text.style.position = "absolute";
+		text.style.display = "inline-block";
 		text.style.top = "0";
 		text.style.right = "0";
 		text.style.fontFamily = "sans-serif";
@@ -213,6 +213,11 @@ class MaskEditorDialog extends ComfyDialog {
 		top_panel.style.right = "20px";
 		top_panel.style.height = "50px";
 
+		var top_right_sub_panel = document.createElement("div");
+		top_right_sub_panel.style.position = "absolute";
+		top_right_sub_panel.style.top = "0";
+		top_right_sub_panel.style.right = "0";
+
 		var bottom_panel = document.createElement("div");
 		bottom_panel.style.position = "absolute";
 		bottom_panel.style.bottom = "0px";
@@ -238,6 +243,7 @@ class MaskEditorDialog extends ComfyDialog {
 		this.element.appendChild(placeholder); // must below z-index than bottom_panel to avoid covering button
 		this.element.appendChild(top_panel);
 		this.element.appendChild(bottom_panel);
+		top_panel.appendChild(top_right_sub_panel)
 		document.body.appendChild(brush);
 		
 
@@ -321,8 +327,8 @@ class MaskEditorDialog extends ComfyDialog {
 
 		top_panel.appendChild(modeButton);
 		top_panel.appendChild(colorPicker);
-		top_panel.appendChild(this.frameNumberText);
-		top_panel.appendChild(this.frameNumberSlider);
+		top_right_sub_panel.appendChild(this.frameNumberText);
+		top_right_sub_panel.appendChild(this.frameNumberSlider);
 		bottom_panel.appendChild(clearButton);
 		bottom_panel.appendChild(ReuseButton);
 		bottom_panel.appendChild(this.saveButton);
