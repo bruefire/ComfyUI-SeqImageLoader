@@ -340,6 +340,8 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	show() {
+		const hasBackup = this.backupMaskCanvases != null;
+
 		if(!this.is_layout_created) {
 			// layout
 			const imgCanvas = document.createElement('canvas');
@@ -396,20 +398,23 @@ class MaskEditorDialog extends ComfyDialog {
 					data0.subfolder = "extVideoFrame" + String(this.#seqSkhId);
 					return data0;
 				});
-				const loadPrev = (path, i, canvases) => {
+				const loadPrev = (path, backCanvas, backupCanvas) => {
 					const params = new URLSearchParams(path);
 					const url = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
 					let img = new Image();
 					img.src = url;
 					img.onload = () => {
-						let canvas = canvases[i];
-						canvas.width = img.width;
-						canvas.height = img.height;
-						canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+						[backCanvas, backupCanvas].forEach(cvs => {
+							cvs.width = img.width;
+							cvs.height = img.height;
+							cvs.getContext('2d').drawImage(img, 0, 0, cvs.width, cvs.height);
+						});
 					};
 				};
-				maskPaths.forEach((elem, i) => loadPrev(elem, i, this.backMaskCanvases));
-				sketchPaths.forEach((elem, i) => loadPrev(elem, i, this.backSketchCanvases));
+				this.backupMaskCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
+				this.backupSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
+				maskPaths.forEach((elem, i) => loadPrev(elem, this.backMaskCanvases[i], this.backupMaskCanvases[i]));
+				sketchPaths.forEach((elem, i) => loadPrev(elem, this.backSketchCanvases[i], this.backupSketchCanvases[i]));
 			}
 
 		}
@@ -418,7 +423,7 @@ class MaskEditorDialog extends ComfyDialog {
 			this.backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 		}
 
-		if (this.backupMaskCanvases) {
+		if (hasBackup) {
 			this.backMaskCanvases = this.backupMaskCanvases;
 			this.backSketchCanvases = this.backupSketchCanvases;
 		}
