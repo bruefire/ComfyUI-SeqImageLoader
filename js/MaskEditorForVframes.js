@@ -232,6 +232,8 @@ class MaskEditorDialog extends ComfyDialog {
 			});
 		var modeButton = this.createLeftButton("sketch",
 			(ev) => {
+				this.workCanvases = [];
+
 				this.maskCtx.globalCompositeOperation = "source-over";
 				if (!this.is_sketch) {
 					ev.target.innerText = "inpaint";
@@ -285,8 +287,12 @@ class MaskEditorDialog extends ComfyDialog {
 					this.maskCanvas.getContext('2d').drawImage(prevBack, 0, 0, prevBack.width, prevBack.height);
 				}
 			});
-		var prevButton = this.createLeftButton("Prev", () => this.moveToPrev());
-		var nextButton = this.createLeftButton("Next", () => this.moveToNext());
+		var UndoButton = this.createLeftButton("Undo",
+			() => {
+				this.unstackWorkCanvas();
+			});
+		var prevButton = this.createLeftButton("<", () => this.moveToPrev());
+		var nextButton = this.createLeftButton(">", () => this.moveToNext());
 		var cancelButton = this.createRightButton("Cancel", () => {
 			document.removeEventListener("mouseup", MaskEditorDialog.handleMouseUp);
 			document.removeEventListener("keydown", MaskEditorDialog.handleKeyDown);
@@ -309,13 +315,14 @@ class MaskEditorDialog extends ComfyDialog {
 		top_panel.appendChild(colorPicker);
 		top_right_sub_panel.appendChild(this.frameNumberText);
 		top_right_sub_panel.appendChild(this.frameNumberSlider);
+		top_right_sub_panel.appendChild(prevButton);
+		top_right_sub_panel.appendChild(nextButton);
 		bottom_panel.appendChild(clearButton);
 		bottom_panel.appendChild(ReuseButton);
 		bottom_panel.appendChild(this.saveButton);
 		bottom_panel.appendChild(cancelButton);
 		bottom_panel.appendChild(brush_size_slider);
-		bottom_panel.appendChild(prevButton);
-		bottom_panel.appendChild(nextButton);
+		bottom_panel.appendChild(UndoButton);
 
 		colorPicker.style.display = "none";
 
@@ -353,6 +360,7 @@ class MaskEditorDialog extends ComfyDialog {
 			this.sketchCanvas = sketchCanvas;
 			this.backMaskCanvases = backMaskCanvases;
 			this.backSketchCanvases = backSketchCanvases;
+			this.workCanvases = [];
 			this.maskCtx = maskCanvas.getContext('2d');
 
 			this.setMaskEventHandler(maskCanvas);
@@ -500,10 +508,6 @@ class MaskEditorDialog extends ComfyDialog {
 		window.addEventListener("resize", this.resizingEventHandler);
 
 		const touched_image = new Image();
-
-		touched_image.onload = function() {
-
-		};
 
 		const alpha_url = new URL(api.apiURL("/view?" + new URLSearchParams(this.#paths[this.#selectedIndex]).toString()), window.location.href);
 		alpha_url.searchParams.delete('channel');
@@ -721,6 +725,8 @@ class MaskEditorDialog extends ComfyDialog {
 
 		if ([0, 2, 5].includes(event.button)) {
 			self.drawing_mode = true;
+			
+			this.stackWorkCanvas();
 
 			event.preventDefault();
 			const maskRect = self.maskCanvas.getBoundingClientRect();
@@ -740,6 +746,26 @@ class MaskEditorDialog extends ComfyDialog {
 			self.lasty = y;
 			self.lasttime = performance.now();
 		}
+	}
+
+	stackWorkCanvas() {
+		let newCanvas = document.createElement("canvas");
+		newCanvas.width = this.maskCanvas.width;
+		newCanvas.height = this.maskCanvas.height;
+		newCanvas.getContext('2d').drawImage(this.maskCanvas, 0, 0);
+
+		if (this.workCanvases.length == 32)
+			this.workCanvases.shift();
+		this.workCanvases.push(newCanvas);
+	}
+
+	unstackWorkCanvas() {
+		if (this.workCanvases.length == 0)
+			return;
+
+		let lastCanvas = this.workCanvases.pop();
+		this.maskCanvas.getContext('2d').clearRect(0, 0, lastCanvas.width, lastCanvas.height);
+		this.maskCanvas.getContext('2d').drawImage(lastCanvas, 0, 0);
 	}
 
 	getBackCanvasForCurrentMode(index) {
@@ -777,6 +803,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 	moveToPrev() {
 		if (this.#selectedIndex > 0) {
+			this.workCanvases = [];
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
@@ -786,6 +813,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 	moveToNext() {
 		if (this.#selectedIndex < this.#paths.length - 1) {
+			this.workCanvases = [];
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
@@ -852,6 +880,7 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	close() {
+		this.workCanvases = [];
 		window.removeEventListener("resize", this.resizingEventHandler);
 		super.close();
 	}
