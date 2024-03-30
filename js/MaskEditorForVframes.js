@@ -17,26 +17,6 @@ function dataURLToBlob(dataURL) {
 	return new Blob([arrayBuffer], { type: contentType });
 }
 
-function prepareRGB(image, backupCanvas, backupCtx) {
-	// paste mask data into alpha channel
-	backupCtx.drawImage(image, 0, 0, backupCanvas.width, backupCanvas.height);
-	const backupData = backupCtx.getImageData(0, 0, backupCanvas.width, backupCanvas.height);
-
-	// refine mask image
-	for (let i = 0; i < backupData.data.length; i += 4) {
-		if(backupData.data[i+3] == 255)
-			backupData.data[i+3] = 0;
-		else
-			backupData.data[i+3] = 255;
-
-		backupData.data[i] = 0;
-		backupData.data[i+1] = 0;
-		backupData.data[i+2] = 0;
-	}
-
-	backupCtx.globalCompositeOperation = 'source-over';
-	backupCtx.putImageData(backupData, 0, 0);
-}
 
 class MaskEditorDialog extends ComfyDialog {
 	static instance = null;
@@ -358,14 +338,12 @@ class MaskEditorDialog extends ComfyDialog {
 			const imgCanvas = document.createElement('canvas');
 			const maskCanvas = document.createElement('canvas');
 			const sketchCanvas = document.createElement('canvas');
-			const backupCanvas = document.createElement('canvas');
 			const backMaskCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 			const backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 
 			imgCanvas.id = "imageCanvas";
 			maskCanvas.id = "maskCanvas";
 			sketchCanvas.id = "sketchCanvas";
-			backupCanvas.id = "backupCanvas";
 
 			this.setlayout(imgCanvas, maskCanvas, sketchCanvas);
 
@@ -373,11 +351,9 @@ class MaskEditorDialog extends ComfyDialog {
 			this.imgCanvas = imgCanvas;
 			this.maskCanvas = maskCanvas;
 			this.sketchCanvas = sketchCanvas;
-			this.backupCanvas = backupCanvas;
 			this.backMaskCanvases = backMaskCanvases;
 			this.backSketchCanvases = backSketchCanvases;
 			this.maskCtx = maskCanvas.getContext('2d');
-			this.backupCtx = backupCanvas.getContext('2d');
 
 			this.setMaskEventHandler(maskCanvas);
 
@@ -445,7 +421,7 @@ class MaskEditorDialog extends ComfyDialog {
 				canvas => canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height));
 		}
 
-		this.setImages(this.imgCanvas, this.backupCanvas);
+		this.setImages(this.imgCanvas);
 		this.updateFrameNumberUi(true);
 
 		if(ComfyApp.clipspace_return_node) {
@@ -467,15 +443,13 @@ class MaskEditorDialog extends ComfyDialog {
 		return this.element.style.display == "block";
 	}
 
-	setImages(imgCanvas, backupCanvas) {
+	setImages(imgCanvas) {
 		const imgCtx = imgCanvas.getContext('2d');
-		const backupCtx = backupCanvas.getContext('2d');
 		const maskCtx = this.maskCtx;
 		const maskCanvas = this.maskCanvas;
 		const sketchCanvas = this.sketchCanvas;
 		const sketchCtx = sketchCanvas.getContext('2d');
 
-		backupCtx.clearRect(0,0,this.backupCanvas.width,this.backupCanvas.height);
 		imgCtx.clearRect(0,0,this.imgCanvas.width,this.imgCanvas.height);
 		maskCtx.clearRect(0,0,this.maskCanvas.width,this.maskCanvas.height);
 
@@ -528,10 +502,7 @@ class MaskEditorDialog extends ComfyDialog {
 		const touched_image = new Image();
 
 		touched_image.onload = function() {
-			backupCanvas.width = touched_image.width;
-			backupCanvas.height = touched_image.height;
 
-			prepareRGB(touched_image, backupCanvas, backupCtx);
 		};
 
 		const alpha_url = new URL(api.apiURL("/view?" + new URLSearchParams(this.#paths[this.#selectedIndex]).toString()), window.location.href);
@@ -836,13 +807,6 @@ class MaskEditorDialog extends ComfyDialog {
 
 	async save() {
 		this.storeActiveToBack();
-
-		const backupCtx = this.backupCanvas.getContext('2d');
-
-		backupCtx.clearRect(0,0,this.backupCanvas.width,this.backupCanvas.height);
-		backupCtx.drawImage(this.maskCanvas,
-			0, 0, this.maskCanvas.width, this.maskCanvas.height,
-			0, 0, this.backupCanvas.width, this.backupCanvas.height);
 
 		const uploadImages = async (maskCanvas, i, idSitr) => {
 			const body = new FormData();
