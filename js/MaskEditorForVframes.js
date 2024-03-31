@@ -571,9 +571,13 @@ class MaskEditorDialog extends ComfyDialog {
 			self.moveToPrev();
 		} else if (event.key == 'ArrowRight') {
 			self.moveToNext();
-		} else if (event.ctrlKey && (event.key == 'z' || event.key == 'Z')) {
-			self.unstackWorkCanvas();
-		}
+		} 
+		// else if (event.altKey && (event.key == 'z' || event.key == 'Z')) {
+		// 	event.preventDefault();
+		// 	event.stopPropagation();
+
+		// 	self.unstackWorkCanvas();
+		// }
 
 		self.updateBrushPreview(self);
 	}
