@@ -619,7 +619,9 @@ class MaskEditorDialog extends ComfyDialog {
 		const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
 
 		if (this.is_magicWand) {
-			if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
+			if ((window.TouchEvent && event instanceof TouchEvent || event.buttons == 1)
+				|| (event.buttons == 2 || event.buttons == 5 || event.buttons == 32)) {
+			
 				var diff = performance.now() - self.lasttime;
 
 				if(diff > 20 && !this.drawing_mode) {
@@ -752,7 +754,8 @@ class MaskEditorDialog extends ComfyDialog {
 					this.maskCanvas, 
 					this.sketchCanvas, 
 					this.getActiveBrushColor(),
-					16);
+					16,
+					event.button == 0);
 				this.magicWandInst.execute(x, y, 0, this.maskCanvas);
 				
 				self.lastx = x;

@@ -70,7 +70,7 @@ class MagicWand {
             newMaskData.data[index + 0] = parseInt(this.maskingColor.substr(1,2), 16);
             newMaskData.data[index + 1] = parseInt(this.maskingColor.substr(3,2), 16);
             newMaskData.data[index + 2] = parseInt(this.maskingColor.substr(5,2), 16);
-            newMaskData.data[index + 3] = 255;
+            newMaskData.data[index + 3] = this.adding ? 255 : 0;
         });
 		newMaskCtx.putImageData(newMaskData, 0, 0);
 
@@ -82,7 +82,7 @@ class MagicWand {
         return newMaskCvs;
     }
 
-    constructor(imageCanvas, maskCanvas, sketchCanvas, colorStr, threshold) {
+    constructor(imageCanvas, maskCanvas, sketchCanvas, colorStr, threshold, adding) {
         this.targetCanvas = document.createElement('canvas');
         let trgCvs = this.targetCanvas;
         trgCvs.width = maskCanvas.width;
@@ -98,6 +98,7 @@ class MagicWand {
 
         this.maskingColor = colorStr;
         this.threshold = threshold;
+        this.adding = adding;
     }
 
 }
