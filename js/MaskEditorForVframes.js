@@ -2,7 +2,7 @@ import { app } from "../../scripts/app.js";
 import { ComfyDialog, $el } from "../../scripts/ui.js";
 import { ComfyApp } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js"
-import { MagicWand } from "./MagicWand.js";
+import MagicWand from "./MagicWand.js";
 //import { ClipspaceDialog } from "./clipspace.js";
 
 // Helper function to convert a data URL to a Blob object
@@ -292,6 +292,10 @@ class MaskEditorDialog extends ComfyDialog {
 			() => {
 				this.unstackWorkCanvas();
 			});
+		var fillModeButton = this.createLeftButton("✨",
+			(ev) => {
+				this.changeFillMode(ev.target);
+			});
 		var prevButton = this.createLeftButton("<", () => this.moveToPrev());
 		var nextButton = this.createLeftButton(">", () => this.moveToNext());
 		var cancelButton = this.createRightButton("Cancel", () => {
@@ -312,6 +316,7 @@ class MaskEditorDialog extends ComfyDialog {
 		this.element.appendChild(placeholder); // must below z-index than bottom_panel to avoid covering button
 		this.element.appendChild(bottom_panel);
 
+		top_panel.appendChild(fillModeButton);
 		top_panel.appendChild(modeButton);
 		top_panel.appendChild(colorPicker);
 		top_right_sub_panel.appendChild(this.frameNumberText);
@@ -370,6 +375,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 			this.is_layout_created = true;
 			this.is_sketch = false;
+			this.is_magicWand = false;
 
 			// replacement of onClose hook since close is not real close
 			const self = this;
@@ -565,6 +571,8 @@ class MaskEditorDialog extends ComfyDialog {
 			self.moveToPrev();
 		} else if (event.key == 'ArrowRight') {
 			self.moveToNext();
+		} else if (event.ctrlKey && (event.key == 'z' || event.key == 'Z')) {
+			self.unstackWorkCanvas();
 		}
 
 		self.updateBrushPreview(self);
@@ -606,151 +614,180 @@ class MaskEditorDialog extends ComfyDialog {
 
 		self.updateBrushPreview(self);
 
-		if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
-			var diff = performance.now() - self.lasttime;
+		const maskRect = self.maskCanvas.getBoundingClientRect();
+		const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
+		const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
 
-			const maskRect = self.maskCanvas.getBoundingClientRect();
+		if (this.is_magicWand) {
+			if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
+				var diff = performance.now() - self.lasttime;
 
-			var x = event.offsetX;
-			var y = event.offsetY
-
-			if(event.offsetX == null) {
-				x = event.targetTouches[0].clientX - maskRect.left;
-			}
-
-			if(event.offsetY == null) {
-				y = event.targetTouches[0].clientY - maskRect.top;
-			}
-
-			var brush_size = this.brush_size;
-			if(event instanceof PointerEvent && event.pointerType == 'pen') {
-				brush_size *= event.pressure;
-				this.last_pressure = event.pressure;
-			}
-			else if(window.TouchEvent && event instanceof TouchEvent && diff < 20){
-				// The firing interval of PointerEvents in Pen is unreliable, so it is supplemented by TouchEvents.
-				brush_size *= this.last_pressure;
-			}
-			else {
-				brush_size = this.brush_size;
-			}
-
-			if(diff > 20 && !this.drawing_mode)
-				requestAnimationFrame(() => {
-					self.maskCtx.beginPath();
-					self.maskCtx.fillStyle = this.getActiveBrushColor();
-					self.maskCtx.globalCompositeOperation = "source-over";
-					self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
-					self.maskCtx.fill();
-					self.lastx = x;
-					self.lasty = y;
-				});
-			else
-				requestAnimationFrame(() => {
-					self.maskCtx.beginPath();
-					self.maskCtx.fillStyle = this.getActiveBrushColor();
-					self.maskCtx.globalCompositeOperation = "source-over";
-
-					var dx = x - self.lastx;
-					var dy = y - self.lasty;
-
-					var distance = Math.sqrt(dx * dx + dy * dy);
-					var directionX = dx / distance;
-					var directionY = dy / distance;
-
-					for (var i = 0; i < distance; i+=5) {
-						var px = self.lastx + (directionX * i);
-						var py = self.lasty + (directionY * i);
-						self.maskCtx.arc(px, py, brush_size, 0, Math.PI * 2, false);
-						self.maskCtx.fill();
-					}
-					self.lastx = x;
-					self.lasty = y;
-				});
-
-			self.lasttime = performance.now();
-		}
-		else if(event.buttons == 2 || event.buttons == 5 || event.buttons == 32) {
-			const maskRect = self.maskCanvas.getBoundingClientRect();
-			const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
-			const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
-
-			var brush_size = this.brush_size;
-			if(event instanceof PointerEvent && event.pointerType == 'pen') {
-				brush_size *= event.pressure;
-				this.last_pressure = event.pressure;
-			}
-			else if(window.TouchEvent && event instanceof TouchEvent && diff < 20){
-				brush_size *= this.last_pressure;
-			}
-			else {
-				brush_size = this.brush_size;
-			}
-
-			if(diff > 20 && !drawing_mode) // cannot tracking drawing_mode for touch event
-				requestAnimationFrame(() => {
-					self.maskCtx.beginPath();
-					self.maskCtx.globalCompositeOperation = "destination-out";
-					self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
-					self.maskCtx.fill();
-					self.lastx = x;
-					self.lasty = y;
-				});
-			else
-				requestAnimationFrame(() => {
-					self.maskCtx.beginPath();
-					self.maskCtx.globalCompositeOperation = "destination-out";
+				if(diff > 20 && !this.drawing_mode) {
 					
+				} else {
 					var dx = x - self.lastx;
 					var dy = y - self.lasty;
+					var deviation = Math.sqrt(dx * dx + dy * dy) * Math.sign(dx * dy);
 
-					var distance = Math.sqrt(dx * dx + dy * dy);
-					var directionX = dx / distance;
-					var directionY = dy / distance;
+					this.magicWandInst?.execute(self.lastx, self.lasty, deviation, this.maskCanvas);
+				}
+			}
 
-					for (var i = 0; i < distance; i+=5) {
-						var px = self.lastx + (directionX * i);
-						var py = self.lasty + (directionY * i);
-						self.maskCtx.arc(px, py, brush_size, 0, Math.PI * 2, false);
+		} else {
+			if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
+				var diff = performance.now() - self.lasttime;
+	
+				var brush_size = this.brush_size;
+				if(event instanceof PointerEvent && event.pointerType == 'pen') {
+					brush_size *= event.pressure;
+					this.last_pressure = event.pressure;
+				}
+				else if(window.TouchEvent && event instanceof TouchEvent && diff < 20){
+					// The firing interval of PointerEvents in Pen is unreliable, so it is supplemented by TouchEvents.
+					brush_size *= this.last_pressure;
+				}
+				else {
+					brush_size = this.brush_size;
+				}
+	
+				if(diff > 20 && !this.drawing_mode)
+					requestAnimationFrame(() => {
+						self.maskCtx.beginPath();
+						self.maskCtx.fillStyle = this.getActiveBrushColor();
+						self.maskCtx.globalCompositeOperation = "source-over";
+						self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
 						self.maskCtx.fill();
-					}
-					self.lastx = x;
-					self.lasty = y;
-				});
-
+						self.lastx = x;
+						self.lasty = y;
+					});
+				else
+					requestAnimationFrame(() => {
+						self.maskCtx.beginPath();
+						self.maskCtx.fillStyle = this.getActiveBrushColor();
+						self.maskCtx.globalCompositeOperation = "source-over";
+	
+						var dx = x - self.lastx;
+						var dy = y - self.lasty;
+	
+						var distance = Math.sqrt(dx * dx + dy * dy);
+						var directionX = dx / distance;
+						var directionY = dy / distance;
+	
+						for (var i = 0; i < distance; i+=5) {
+							var px = self.lastx + (directionX * i);
+							var py = self.lasty + (directionY * i);
+							self.maskCtx.arc(px, py, brush_size, 0, Math.PI * 2, false);
+							self.maskCtx.fill();
+						}
+						self.lastx = x;
+						self.lasty = y;
+					});
+	
 				self.lasttime = performance.now();
+			}
+			else if(event.buttons == 2 || event.buttons == 5 || event.buttons == 32) {
+	
+				var brush_size = this.brush_size;
+				if(event instanceof PointerEvent && event.pointerType == 'pen') {
+					brush_size *= event.pressure;
+					this.last_pressure = event.pressure;
+				}
+				else if(window.TouchEvent && event instanceof TouchEvent && diff < 20){
+					brush_size *= this.last_pressure;
+				}
+				else {
+					brush_size = this.brush_size;
+				}
+	
+				if(diff > 20 && !drawing_mode) // cannot tracking drawing_mode for touch event
+					requestAnimationFrame(() => {
+						self.maskCtx.beginPath();
+						self.maskCtx.globalCompositeOperation = "destination-out";
+						self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
+						self.maskCtx.fill();
+						self.lastx = x;
+						self.lasty = y;
+					});
+				else
+					requestAnimationFrame(() => {
+						self.maskCtx.beginPath();
+						self.maskCtx.globalCompositeOperation = "destination-out";
+						
+						var dx = x - self.lastx;
+						var dy = y - self.lasty;
+	
+						var distance = Math.sqrt(dx * dx + dy * dy);
+						var directionX = dx / distance;
+						var directionY = dy / distance;
+	
+						for (var i = 0; i < distance; i+=5) {
+							var px = self.lastx + (directionX * i);
+							var py = self.lasty + (directionY * i);
+							self.maskCtx.arc(px, py, brush_size, 0, Math.PI * 2, false);
+							self.maskCtx.fill();
+						}
+						self.lastx = x;
+						self.lasty = y;
+					});
+	
+					self.lasttime = performance.now();
+			}
 		}
 	}
 
 	handlePointerDown(self, event) {
-		var brush_size = this.brush_size;
-		if(event instanceof PointerEvent && event.pointerType == 'pen') {
-			brush_size *= event.pressure;
-			this.last_pressure = event.pressure;
-		}
+		this.stackWorkCanvas();
 
-		if ([0, 2, 5].includes(event.button)) {
-			self.drawing_mode = true;
-			
-			this.stackWorkCanvas();
+		if (this.is_magicWand) {
+			if ([0, 2, 5].includes(event.button)) {
+				self.drawing_mode = true;
+	
+				event.preventDefault();
+				const maskRect = self.maskCanvas.getBoundingClientRect();
+				const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
+				const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
 
-			event.preventDefault();
-			const maskRect = self.maskCanvas.getBoundingClientRect();
-			const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
-			const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
-
-			self.maskCtx.beginPath();
-			if (event.button == 0) {
-				self.maskCtx.fillStyle = this.getActiveBrushColor();
-				self.maskCtx.globalCompositeOperation = "source-over";
-			} else {
-				self.maskCtx.globalCompositeOperation = "destination-out";
+				this.magicWandInst = new MagicWand(
+					this.imgCanvas, 
+					this.maskCanvas, 
+					this.sketchCanvas, 
+					this.getActiveBrushColor(),
+					16);
+				this.magicWandInst.execute(x, y, 0, this.maskCanvas);
+				
+				self.lastx = x;
+				self.lasty = y;
+				self.lasttime = performance.now();
 			}
-			self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
-			self.maskCtx.fill();
-			self.lastx = x;
-			self.lasty = y;
-			self.lasttime = performance.now();
+
+		} else {
+			var brush_size = this.brush_size;
+			if(event instanceof PointerEvent && event.pointerType == 'pen') {
+				brush_size *= event.pressure;
+				this.last_pressure = event.pressure;
+			}
+	
+			if ([0, 2, 5].includes(event.button)) {
+				self.drawing_mode = true;
+	
+				event.preventDefault();
+				const maskRect = self.maskCanvas.getBoundingClientRect();
+				const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
+				const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
+	
+				self.maskCtx.beginPath();
+				if (event.button == 0) {
+					self.maskCtx.fillStyle = this.getActiveBrushColor();
+					self.maskCtx.globalCompositeOperation = "source-over";
+				} else {
+					self.maskCtx.globalCompositeOperation = "destination-out";
+				}
+				self.maskCtx.arc(x, y, brush_size, 0, Math.PI * 2, false);
+				self.maskCtx.fill();
+				self.lastx = x;
+				self.lasty = y;
+				self.lasttime = performance.now();
+			}
 		}
 	}
 
@@ -769,9 +806,21 @@ class MaskEditorDialog extends ComfyDialog {
 		if (this.workCanvases.length == 0)
 			return;
 
+		this.maskCtx.globalCompositeOperation = "source-over";
 		let lastCanvas = this.workCanvases.pop();
 		this.maskCanvas.getContext('2d').clearRect(0, 0, lastCanvas.width, lastCanvas.height);
 		this.maskCanvas.getContext('2d').drawImage(lastCanvas, 0, 0);
+	}
+
+	changeFillMode(button) {
+		if (this.is_magicWand) {
+			button.innerText = "✨";
+
+		} else {
+			button.innerText = "🖌";
+		}
+
+		this.is_magicWand = !this.is_magicWand;
 	}
 
 	getBackCanvasForCurrentMode(index) {
@@ -789,7 +838,7 @@ class MaskEditorDialog extends ComfyDialog {
 	getActiveBrushColor() {
 		return this.is_sketch
 			? this.colorPicker.value
-			: "rgb(255, 255, 255)";
+			: "#ffffff";
 	}
 
 	prepareSketchLayer() {
