@@ -233,7 +233,8 @@ class MaskEditorDialog extends ComfyDialog {
 			});
 		var modeButton = this.createLeftButton("sketch",
 			(ev) => {
-				this.workCanvases = [];
+				this.beforeCanvases = [];
+				this.afterCanvases = [];
 
 				this.maskCtx.globalCompositeOperation = "source-over";
 				if (!this.is_sketch) {
@@ -289,9 +290,10 @@ class MaskEditorDialog extends ComfyDialog {
 				}
 			});
 		var UndoButton = this.createLeftButton("Undo",
-			() => {
-				this.unstackWorkCanvas();
-			});
+			() => this.unstackBeforeCanvas());
+		var RedoButton = this.createLeftButton("Redo",
+			() => this.unstackAfterCanvas());
+
 		var fillModeButton = this.createLeftButton("✨",
 			(ev) => {
 				this.changeFillMode(ev.target);
@@ -329,6 +331,7 @@ class MaskEditorDialog extends ComfyDialog {
 		bottom_panel.appendChild(cancelButton);
 		bottom_panel.appendChild(brush_size_slider);
 		bottom_panel.appendChild(UndoButton);
+		bottom_panel.appendChild(RedoButton);
 
 		colorPicker.style.display = "none";
 
@@ -368,7 +371,8 @@ class MaskEditorDialog extends ComfyDialog {
 			this.sketchCanvas = sketchCanvas;
 			this.backMaskCanvases = backMaskCanvases;
 			this.backSketchCanvases = backSketchCanvases;
-			this.workCanvases = [];
+			this.beforeCanvases = [];
+			this.afterCanvases = [];
 			this.maskCtx = maskCanvas.getContext('2d');
 
 			this.setMaskEventHandler(maskCanvas);
@@ -575,7 +579,7 @@ class MaskEditorDialog extends ComfyDialog {
 		// 	event.preventDefault();
 		// 	event.stopPropagation();
 
-		// 	self.unstackWorkCanvas();
+		// 	self.unstackBeforeCanvas();
 		// }
 
 		self.updateBrushPreview(self);
@@ -741,7 +745,7 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	handlePointerDown(self, event) {
-		this.stackWorkCanvas();
+		this.stackBeforeCanvas();
 
 		if (this.is_magicWand) {
 			if ([0, 2, 5].includes(event.button)) {
@@ -797,25 +801,45 @@ class MaskEditorDialog extends ComfyDialog {
 		}
 	}
 
-	stackWorkCanvas() {
+	stackBeforeCanvas() {
 		let newCanvas = document.createElement("canvas");
 		newCanvas.width = this.maskCanvas.width;
 		newCanvas.height = this.maskCanvas.height;
 		newCanvas.getContext('2d').drawImage(this.maskCanvas, 0, 0);
 
-		if (this.workCanvases.length == 32)
-			this.workCanvases.shift();
-		this.workCanvases.push(newCanvas);
+		if (this.beforeCanvases.length == 32)
+			this.beforeCanvases.shift();
+		this.beforeCanvases.push(newCanvas);
+
+		this.afterCanvases = [];
 	}
 
-	unstackWorkCanvas() {
-		if (this.workCanvases.length == 0)
+	unstackBeforeCanvas() {
+		if (this.beforeCanvases.length == 0)
 			return;
 
+		let deactivatedCvs = MaskEditorDialog.#cloneCanvas(this.maskCanvas);
+
 		this.maskCtx.globalCompositeOperation = "source-over";
-		let lastCanvas = this.workCanvases.pop();
-		this.maskCanvas.getContext('2d').clearRect(0, 0, lastCanvas.width, lastCanvas.height);
-		this.maskCanvas.getContext('2d').drawImage(lastCanvas, 0, 0);
+		let activatedCanvas = this.beforeCanvases.pop();
+		this.maskCanvas.getContext('2d').clearRect(0, 0, activatedCanvas.width, activatedCanvas.height);
+		this.maskCanvas.getContext('2d').drawImage(activatedCanvas, 0, 0);
+
+		this.afterCanvases.push(deactivatedCvs);
+	}
+
+	unstackAfterCanvas() {
+		if (this.afterCanvases.length == 0)
+			return;
+
+		let deactivatedCvs = MaskEditorDialog.#cloneCanvas(this.maskCanvas);
+
+		this.maskCtx.globalCompositeOperation = "source-over";
+		let activatedCanvas = this.afterCanvases.pop();
+		this.maskCanvas.getContext('2d').clearRect(0, 0, activatedCanvas.width, activatedCanvas.height);
+		this.maskCanvas.getContext('2d').drawImage(activatedCanvas, 0, 0);
+
+		this.beforeCanvases.push(deactivatedCvs);
 	}
 
 	changeFillMode(button) {
@@ -864,7 +888,8 @@ class MaskEditorDialog extends ComfyDialog {
 
 	moveToPrev() {
 		if (this.#selectedIndex > 0) {
-			this.workCanvases = [];
+			this.beforeCanvases = [];
+			this.afterCanvases = [];
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[--this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
@@ -874,7 +899,8 @@ class MaskEditorDialog extends ComfyDialog {
 
 	moveToNext() {
 		if (this.#selectedIndex < this.#paths.length - 1) {
-			this.workCanvases = [];
+			this.beforeCanvases = [];
+			this.afterCanvases = [];
 			this.storeActiveToBack();
 			const params = new URLSearchParams(this.#paths[++this.#selectedIndex]);
 			this.image.src = new URL(api.apiURL("/view?" + params.toString()), window.location.href);
@@ -946,7 +972,8 @@ class MaskEditorDialog extends ComfyDialog {
 	}
 
 	close() {
-		this.workCanvases = [];
+		this.beforeCanvases = [];
+		this.afterCanvases = [];
 		window.removeEventListener("resize", this.resizingEventHandler);
 		super.close();
 	}
