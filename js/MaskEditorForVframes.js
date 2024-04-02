@@ -431,8 +431,7 @@ class MaskEditorDialog extends ComfyDialog {
 		}
 
 		if (hasBackup) {
-			this.backMaskCanvases = this.backupMaskCanvases;
-			this.backSketchCanvases = this.backupSketchCanvases;
+			this.#restoreBackCanvases();
 		}
 		else {
 			this.backMaskCanvases.forEach(
@@ -924,21 +923,26 @@ class MaskEditorDialog extends ComfyDialog {
 			await uploadImages(this.backSketchCanvases[i], i, String(sketchDirId));
 
 		this.#updatePathDataHnadler(maskDirId, sketchDirId);
-		this.#createBackupCanvases();
+		this.#storeBackCanvases();
 
 		this.close();
 	}
 
-	#createBackupCanvases() {
-		const func = canvas => {
-			const backupCanvas = document.createElement('canvas');
-			backupCanvas.width = canvas.width;
-			backupCanvas.height = canvas.height;
-			backupCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height);
-			return backupCanvas;
-		};
-		this.backupMaskCanvases = this.backMaskCanvases.map(func);
-		this.backupSketchCanvases = this.backSketchCanvases.map(func);
+	static #cloneCanvas(canvas) {
+		const backupCanvas = document.createElement('canvas');
+		backupCanvas.width = canvas.width;
+		backupCanvas.height = canvas.height;
+		backupCanvas.getContext('2d').drawImage(canvas, 0, 0, canvas.width, canvas.height);
+		return backupCanvas;
+	}
+
+	#storeBackCanvases() {
+		this.backupMaskCanvases = this.backMaskCanvases.map(MaskEditorDialog.#cloneCanvas);
+		this.backupSketchCanvases = this.backSketchCanvases.map(MaskEditorDialog.#cloneCanvas);
+	}
+	#restoreBackCanvases() {
+		this.backMaskCanvases = this.backupMaskCanvases.map(MaskEditorDialog.#cloneCanvas);
+		this.backSketchCanvases = this.backupSketchCanvases.map(MaskEditorDialog.#cloneCanvas)
 	}
 
 	close() {
