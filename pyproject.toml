@@ -1,0 +1,14 @@
+[project]
+name = "comfyui-seqimageloader"
+description = "This is an extension node for ComfyUI that allows you to load frames from a video in bulk and perform masking and sketching on each frame through a GUI."
+version = "1.0.0"
+license = "LICENSE"
+
+[project.urls]
+Repository = "https://github.com/bruefire/ComfyUI-SeqImageLoader"
+#  Used by Comfy Registry https://comfyregistry.org
+
+[tool.comfy]
+PublisherId = ""
+DisplayName = "ComfyUI-SeqImageLoader"
+Icon = ""
