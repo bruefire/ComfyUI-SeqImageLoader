@@ -31,6 +31,18 @@ Otherwise, it is the same as the SequentialImageLoader Node.
 1. After loading the frames, right-click the node and select "Open In MaskEditor".
 2. In the editor that appears, perform masking and sketching as needed. It is based on the standard Mask Editor.
 	
+### Editor Features
+![image](docs/editor_features.png)
+1. Switch between automatic masking (magic wand) and manual masking.
+2. Switch between masking and sketching.
+3. Canvas. Right-click to mask, left-click to unmask.
+4. Change edit frame.
+5. Clear mask on the current frame.
+6. Paste the mask from the previous frame to the current frame.
+7. Change the thickness of the masking.
+8. Undo/Redo operations. Shortcut keys are alt+Z/shift+alt+Z. ( **not Ctrl+Z!** That's the standard shortcuts for ComfyUI. It might cause unexpected behavior.)
+9. Save or cancel the results.
+	
 ## Example With AnimateDiff
 ![iamge](docs/dogcat.gif)
 
