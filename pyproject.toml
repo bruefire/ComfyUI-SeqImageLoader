@@ -6,9 +6,9 @@ license = "LICENSE"
 
 [project.urls]
 Repository = "https://github.com/bruefire/ComfyUI-SeqImageLoader"
-#  Used by Comfy Registry https://comfyregistry.org
+# Used by Comfy Registry https://comfyregistry.org
 
 [tool.comfy]
-PublisherId = ""
+PublisherId = "bruefire"
 DisplayName = "ComfyUI-SeqImageLoader"
 Icon = ""
