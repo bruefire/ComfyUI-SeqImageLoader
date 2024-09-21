@@ -46,7 +46,7 @@ Otherwise, it is the same as the SequentialImageLoader Node.
 ## Example With AnimateDiff
 ![iamge](docs/dogcat.gif)
 
-[Workflow](dogcat-workflow.json) (It's depend on [ComfyUI-AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved))  
+[Workflow](sample_workflows/cat2dog_with_animatediff.json) (It's depend on [ComfyUI-AnimateDiff-Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved))  
 [Video source](https://www.pexels.com/video/a-pet-cat-standing-on-the-brick-floor-of-a-garden-3009091/)  
 
 ## Other
