@@ -93,7 +93,7 @@ class LoadImagesInpaint:
             s = ImageOps.exif_transpose(s).convert("RGBA")
             s = s.resize(i.size)
             image = Image.alpha_composite(i, s)
-            image.convert("RGB")
+            image = image.convert("RGB")
             image = np.array(image).astype(np.float32) / 255.0
             image = torch.from_numpy(image)[None,]
 
