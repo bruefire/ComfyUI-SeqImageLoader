@@ -66,10 +66,20 @@ class MaskEditorDialog extends ComfyDialog {
 
 	constructor() {
 		super();
-		this.element = $el("div.comfy-modal", { parent: document.body }, 
+		this.element = $el("div", { parent: document.body }, 
 			[ $el("div.comfy-modal-content", 
 				[...this.createButtons()]),
 			]);
+
+		this.element.style.position = "fixed";
+		this.element.style.padding = "30px 30px 10px 30px";
+		this.element.style.backgroundColor = "#353535";
+		this.element.style.boxShadow = "0 0 20px #888888";
+		this.element.style.borderRadius = "10px";
+		this.element.style.fontFamily = "monospace";
+		this.element.style.fontSize = "15px";
+		this.element.style.top = "5%";
+		this.element.style.left = "100px";
 	}
 
 	createButtons() {
@@ -360,8 +370,8 @@ class MaskEditorDialog extends ComfyDialog {
 			const backSketchCanvases = [...new Array(this.#paths.length)].map(_ => document.createElement("canvas"));
 
 			imgCanvas.id = "imageCanvas";
-			maskCanvas.id = "maskCanvas";
-			sketchCanvas.id = "sketchCanvas";
+			maskCanvas.id = "vMaskCanvas";
+			sketchCanvas.id = "vSketchCanvas";
 
 			this.setlayout(imgCanvas, maskCanvas, sketchCanvas);
 
