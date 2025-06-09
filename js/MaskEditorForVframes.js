@@ -306,7 +306,11 @@ class MaskEditorDialog extends ComfyDialog {
 
 		var fillModeButton = this.createLeftButton("✨",
 			(ev) => {
-				this.changeFillMode(ev.target);
+				this.changeFillMode(ev.target, this.fillModeNum ? 1 : 0);
+			});
+		var paintModeButton = this.createLeftButton("□",
+			(ev) => {
+				this.changeFillMode(ev.target, 2);
 			});
 		var prevButton = this.createLeftButton("<", () => this.moveToPrev());
 		var nextButton = this.createLeftButton(">", () => this.moveToNext());
@@ -389,7 +393,7 @@ class MaskEditorDialog extends ComfyDialog {
 
 			this.is_layout_created = true;
 			this.is_sketch = false;
-			this.is_magicWand = false;
+			this.fillModeNum = 0;
 
 			// replacement of onClose hook since close is not real close
 			const self = this;
@@ -639,7 +643,7 @@ class MaskEditorDialog extends ComfyDialog {
 		const x = event.offsetX || event.targetTouches[0].clientX - maskRect.left;
 		const y = event.offsetY || event.targetTouches[0].clientY - maskRect.top;
 
-		if (this.is_magicWand) {
+		if (this.fillModeNum == 1) {
 			if ((window.TouchEvent && event instanceof TouchEvent || event.buttons == 1)
 				|| (event.buttons == 2 || event.buttons == 5 || event.buttons == 32)) {
 			
@@ -656,7 +660,7 @@ class MaskEditorDialog extends ComfyDialog {
 				}
 			}
 
-		} else {
+		} else if (this.fillModeNum == 0) {
 			if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
 				var diff = performance.now() - self.lasttime;
 	
@@ -755,13 +759,18 @@ class MaskEditorDialog extends ComfyDialog {
 	
 					self.lasttime = performance.now();
 			}
+		} else if (this.fillModeNum == 2) {
+			if (window.TouchEvent && event instanceof TouchEvent || event.buttons == 1) {
+
+			}
+
 		}
 	}
 
 	handlePointerDown(self, event) {
 		this.stackBeforeCanvas();
 
-		if (this.is_magicWand) {
+		if (this.fillModeNum == 1) {
 			if ([0, 2, 5].includes(event.button)) {
 				self.drawing_mode = true;
 	
@@ -784,7 +793,7 @@ class MaskEditorDialog extends ComfyDialog {
 				self.lasttime = performance.now();
 			}
 
-		} else {
+		} else if (this.fillModeNum == 0) {
 			var brush_size = this.brush_size;
 			if(event instanceof PointerEvent && event.pointerType == 'pen') {
 				brush_size *= event.pressure;
@@ -812,6 +821,8 @@ class MaskEditorDialog extends ComfyDialog {
 				self.lasty = y;
 				self.lasttime = performance.now();
 			}
+		} else if (this.fillModeNum == 2) {
+
 		}
 	}
 
@@ -856,15 +867,18 @@ class MaskEditorDialog extends ComfyDialog {
 		this.beforeCanvases.push(deactivatedCvs);
 	}
 
-	changeFillMode(button) {
-		if (this.is_magicWand) {
+	changeFillMode(button, num) {
+		if (num == 0) {
 			button.innerText = "✨";
-
-		} else {
+			this.fillModeNum = 0;
+		} else if (num == 1) {
 			button.innerText = "🖌";
+			this.fillModeNum = 1;
+		} else if (num == 2) {
+			//button.innerText = "🖌";
+			this.fillModeNum = 2;
 		}
 
-		this.is_magicWand = !this.is_magicWand;
 	}
 
 	getBackCanvasForCurrentMode(index) {
