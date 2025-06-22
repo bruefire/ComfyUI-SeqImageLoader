@@ -127,10 +127,10 @@ class LoadImagesFromDirInpaint(LoadImagesInpaint):
         return {
             "required": {
                 "sequence_id": ("STRING", {"frames_upload": True}),
-            },
-            "optional": {
                 "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+            },
+            "optional": {
             }
         }
     
@@ -141,10 +141,10 @@ class LoadImagesFromFileInpaint(LoadImagesInpaint):
         return {
             "required": {
                 "sequence_id": ("STRING", {"video_upload": True}),
-            },
-            "optional": {
                 "start_index": ("INT", {"default": 0, "min": 0, "step": 1}),
                 "end_index": ("INT", {"default": 0, "min": 0, "step": 1}),
+            },
+            "optional": {
             }
         }
 
